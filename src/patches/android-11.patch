@@ -1,0 +1,99 @@
+--- ./platform_testing/build/tasks/tests/native_test_list.mk
++++ ./platform_testing/build/tasks/tests/native_test_list.mk
+@@ -108,11 +108,10 @@
+     perfetto_integrationtests \
+     posix_async_io_test \
+     prioritydumper_test \
+     puffin_unittest \
+     recovery_unit_test \
+-    resolv_gold_test \
+     resolv_integration_test \
+     resolv_unit_test \
+     scrape_mmap_addr \
+     simpleperf_cpu_hotplug_test \
+     simpleperf_unit_test \
+--- ./system/bt/hci/src/hci_layer.cc
++++ ./system/bt/hci/src/hci_layer.cc
+@@ -373,10 +373,22 @@
+   }
+   future_ready(startup_future, FUTURE_SUCCESS);
+   startup_future = NULL;
+ }
+ 
++#include <fcntl.h>
++#include <sys/ioctl.h>
++static void hw_reset(bool reset) {
++  unsigned buf[8] = { 8 * 4, 0, 0x38041, 8, 8, 128, 0, 0};
++  buf[6] = reset ? 0 : 1;
++  int fd = open("/dev/vcio", 0);
++  if (fd >= 0) {
++    ioctl(fd, _IOWR(100, 0, char *), buf);
++    close(fd);
++  }
++}
++
+ static void startup_timer_expired(UNUSED_ATTR void* context) {
+   LOG_ERROR(LOG_TAG, "%s", __func__);
+ 
+   LOG_EVENT_INT(BT_HCI_TIMEOUT_TAG_NUM, HCI_STARTUP_TIMED_OUT);
+ 
+@@ -384,10 +396,14 @@
+   if (abort_timer.IsScheduled()) {
+     LOG_ERROR(LOG_TAG, "%s: waiting for abort_timer", __func__);
+     return;
+   }
+ 
++  hw_reset(true);
++  sleep(2);
++  hw_reset(false);
++
+   abort();
+ }
+ 
+ // Command/packet transmitting functions
+ static void enqueue_command(waiting_command_t* wait_entry) {
+--- ./hardware/interfaces/bluetooth/1.0/default/vendor_interface.cc
++++ ./hardware/interfaces/bluetooth/1.0/default/vendor_interface.cc
+@@ -341,11 +341,11 @@
+   }
+ 
+   lib_interface_->op(BT_VND_OP_GET_LPM_IDLE_TIMEOUT, &lpm_timeout_ms);
+   ALOGI("%s: lpm_timeout_ms %d", __func__, lpm_timeout_ms);
+ 
+-  bt_vendor_lpm_mode_t mode = BT_VND_LPM_ENABLE;
++  bt_vendor_lpm_mode_t mode = BT_VND_LPM_DISABLE;
+   lib_interface_->op(BT_VND_OP_LPM_SET_MODE, &mode);
+ 
+   ALOGD("%s Calling StartLowPowerWatchdog()", __func__);
+   fd_watcher_.ConfigureTimeout(std::chrono::milliseconds(lpm_timeout_ms),
+                                [this]() { OnTimeout(); });
+--- ./hardware/interfaces/audio/common/all-versions/default/service/Android.bp
++++ ./hardware/interfaces/audio/common/all-versions/default/service/Android.bp
+@@ -6,11 +6,11 @@
+     vendor: true,
+     // Only support 32 bit  as the binary must always be installed at the same
+     // location for init to start it and the build system does not support
+     // having two binaries installable to the same location even if they are
+     // not installed in the same build.
+-    compile_multilib: "32",
++    // compile_multilib: "32",
+     srcs: ["service.cpp"],
+ 
+     cflags: [
+         "-Wall",
+         "-Wextra",
+--- ./hardware/interfaces/camera/provider/2.5/default/Android.bp
++++ ./hardware/interfaces/camera/provider/2.5/default/Android.bp
+@@ -152,11 +152,11 @@
+     name: "android.hardware.camera.provider@2.5-external-service",
+     defaults: ["hidl_defaults"],
+     proprietary: true,
+     relative_install_path: "hw",
+     srcs: ["external-service.cpp"],
+-    compile_multilib: "32",
++    // compile_multilib: "32",
+     init_rc: ["android.hardware.camera.provider@2.5-external-service.rc"],
+     shared_libs: [
+         "android.hardware.camera.common@1.0",
+         "android.hardware.camera.device@1.0",
+         "android.hardware.camera.device@3.2",
