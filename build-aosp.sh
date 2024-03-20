@@ -4,8 +4,9 @@ set -eu
 THIS_SCRIPT=$(readlink -f $0)
 
 DIST_CODENAME=focal
-USER_=${USER:-$(whoami)}
+USER_=${SUDO_USER:-${USER:-$(whoami)}}
 
+ARG_ADDUSER=false
 ARG_RUNAS_DAEMON=false
 ARG_ANDROID_VERSION=
 ARG_ARCH=
@@ -20,10 +21,11 @@ while [[ $# > 0 ]]
 do
 arg="$1"
 case $arg in
-    ##  --user          : The user instead of current user
-    --user)
-    USER_=$2
-    shift
+    ##  --adduser       : Add the user in the docker container before running the
+    ##                  : docker container. This feature is useful when you use
+    ##                  : non rootless-docker.
+    --adduser)
+    ARG_ADDUSER=true
     ;;
     ##  --android       : The android version (10 or 11)
     --android)
@@ -135,7 +137,6 @@ mkdir -p $WORK_GENDIR
 OPTIONS=" \
   --env ARG_ANDROID_VERSION=$ARG_ANDROID_VERSION \
   --env ARG_ARCH=$ARG_ARCH \
-  --env USER_=$USER_ --env UID_=$UID_ --env GID_=$GID_ \
   -v $SCRIPTDIR/src:/opt/mnt_src \
   -v $WORK_SOURCEDIR:/mnt/work \
   -v $WORK_GENDIR:/mnt/gen \
@@ -143,11 +144,18 @@ OPTIONS=" \
   -w /tmp/$USER_/ \
 "
 
+if [[ "$ARG_ADDUSER" == "true" ]]; then
+  OPTIONS="$OPTIONS --env USER_=$USER_ --env UID_=$UID_ --env GID_=$GID_ "
+fi
+
 DOCKER_OPTIONS="-it "
 
 if [[ "$ARG_RUNAS_DAEMON" == "true" ]]; then
   DOCKER_OPTIONS="-d "
 fi
+
+# Commonize the user namespace
+DOCKER_OPTIONS="$DOCKER_OPTIONS --userns=host --privileged "
 
 exec docker run \
   --init --rm $DOCKER_OPTIONS $OPTIONS \
