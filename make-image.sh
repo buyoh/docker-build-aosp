@@ -5,19 +5,28 @@ THIS_SCRIPT=$(readlink -f $0)
 
 cd $(dirname $0)
 SCRIPTDIR=$PWD/src
-OUTDIR=$PWD/out
-OUTSUBDIR=.
-mkdir -p $OUTDIR
-TMPDIR=$OUTDIR/tmp
+OUTDIR=
+OUTSUBDIR=
+TMPDIR=
+
+ARG_OUTDIR=
+ARG_OUTSUBDIR=
 
 while [[ $# > 0 ]]
 do
 arg="$1"
 case $arg in
+    ##  --outdir     : The directory that output binaries.
+    ##                  : 
+    --outdir)
+    ARG_OUTDIR=$2
+    shift
+    ;;
     ##  -t              : Specify output subdirectory name
     ##                  : e.g. android-10-arm
+    # TODO: わかりにくい
     -t)
-    OUTSUBDIR=$2
+    ARG_OUTSUBDIR=$2
     shift
     ;;
     ##  --help, -h      : Show help
@@ -36,6 +45,20 @@ shift
 done
 
 # 
+
+if [[ -z "$ARG_OUTDIR" ]]; then
+  echo "--outdir is required."
+  exit 2
+fi
+
+if [[ -z "$ARG_OUTSUBDIR" ]]; then
+  echo "-t is required."
+  exit 2
+fi
+
+OUTDIR=$ARG_OUTDIR
+OUTSUBDIR=$ARG_OUTSUBDIR
+TMPDIR=$OUTDIR/tmp
 
 cd $OUTDIR
 

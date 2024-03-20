@@ -29,11 +29,20 @@ $ ./build-aosp.sh --android 11 --arch arm --label android11 \
      fecth build
 ```
 
+If you don't use rootless docker, add `--adduser`.
+
+```sh
+$ mkdir -p var && mkdir -p out
+$ sudo ./build-aosp.sh --android 11 --arch arm --label android11 \
+     --workdir ~/work/aosp/var --outdir ~/work/aosp/out --adduser \
+     fecth build
+```
+
 Finally make image via outputs
 
 ```sh
-$ ./make-image.sh -t android-11-arm
-$ ls out/*.img
+$ ./make-image.sh --outdir ~/work/aosp/out -t android-11-arm
+$ ls ~/work/aosp/out/*.img
 ```
 
 ## Directories
