@@ -28,4 +28,7 @@ if [[ ! -d .repo/local_manifests ]]; then
 fi
 git -C .repo/local_manifests checkout $BRANCH_ANDROID_RPI -f
 
+# TODO: Required??
+find -name 'shallow.lock' | xargs rm ||:
+
 repo sync -j4 --force-sync -f --verbose
