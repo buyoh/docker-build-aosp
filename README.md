@@ -26,7 +26,7 @@ Next, fetch the AOSP repository and build them.
 $ mkdir -p var && mkdir -p out
 $ ./build-aosp.sh --android 11 --arch arm --label android11 \
      --workdir ~/work/aosp/var --outdir ~/work/aosp/out \
-     fecth build
+     fecth patch build
 ```
 
 If you don't use rootless docker, add `--adduser`.
@@ -35,7 +35,7 @@ If you don't use rootless docker, add `--adduser`.
 $ mkdir -p var && mkdir -p out
 $ sudo ./build-aosp.sh --android 11 --arch arm --label android11 \
      --workdir ~/work/aosp/var --outdir ~/work/aosp/out --adduser \
-     fecth build
+     fecth patch build
 ```
 
 Finally make image via outputs

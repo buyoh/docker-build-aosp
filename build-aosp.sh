@@ -64,10 +64,12 @@ case $arg in
     grep "^ *##" $THIS_SCRIPT | sed -e "s/^ *##//"
     exit 0
     ;;
-    ## available tasks: fetch, build
+    ## available tasks: fetch, patch, build, patch-revert
     ##  fetch           : Fetch sources from the repository
+    ##  patch           : Apply patches
     ##  build           : Build sources
-    fetch|build)
+    ##  patch-revert    : Revert patches
+    build|patch|fetch|patch-revert)
     ARG_TASKS="$ARG_TASKS $arg"
     ;;
     *)

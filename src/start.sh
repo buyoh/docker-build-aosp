@@ -5,7 +5,7 @@ SCRIPTDIR=$(cd $(dirname $0) && pwd)
 
 for task in $@; do
   case "$task" in
-    build|fetch)
+    build|patch|fetch|patch-revert)
       :  # ok
       ;;
     *)

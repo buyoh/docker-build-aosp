@@ -46,11 +46,6 @@ if [[ $ANDROID_VERSION -le 11 ]]; then
 fi
 
 # ==============================================================================
-# Apply patches
-
-$SCRIPTDIR/patches/patcher.sh --android $ANDROID_VERSION
-
-# ==============================================================================
 # Build
 
 set +u
