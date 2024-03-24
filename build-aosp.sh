@@ -119,6 +119,11 @@ if [[ ! -d "$ARG_OUTDIR" ]]; then
   exit 2
 fi
 
+if [[ -z "$ARG_TASKS" ]]; then
+  echo "No task is specified."
+  exit 2
+fi
+
 # =============================================================================
 
 cd $(dirname $0)
@@ -133,6 +138,8 @@ mkdir -p $WORK_SOURCEDIR
 mkdir -p $WORK_GENDIR
 
 # =============================================================================
+
+TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
 
 OPTIONS=" \
   --env ARG_ANDROID_VERSION=$ARG_ANDROID_VERSION \
@@ -149,9 +156,11 @@ if [[ "$ARG_ADDUSER" == "true" ]]; then
 fi
 
 DOCKER_OPTIONS="-it "
+COMMAND_REDIRECTS=""
 
 if [[ "$ARG_RUNAS_DAEMON" == "true" ]]; then
   DOCKER_OPTIONS="-d "
+  COMMAND_REDIRECTS="2>&1 | tee /mnt/out/console-$TIMESTAMP.log"
 fi
 
 # Commonize the user namespace
@@ -160,4 +169,4 @@ DOCKER_OPTIONS="$DOCKER_OPTIONS --userns=host --privileged "
 exec docker run \
   --init --rm $DOCKER_OPTIONS $OPTIONS \
   env-aosp/$DIST_CODENAME:latest \
-  "cp -ar /opt/mnt_src /tmp/src && bash /tmp/src/start.sh $ARG_TASKS 2>&1 | tee /mnt/out/console.log"
+  "cp -ar /opt/mnt_src /tmp/src && bash /tmp/src/start.sh $ARG_TASKS $COMMAND_REDIRECTS"
