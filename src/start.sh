@@ -8,6 +8,10 @@ for task in $@; do
     build|patch|fetch|patch-revert)
       :  # ok
       ;;
+    bash)
+      bash
+      exit
+      ;;
     *)
       echo "Unknow task: $task"
       ;;

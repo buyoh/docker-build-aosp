@@ -69,7 +69,7 @@ case $arg in
     ##  patch           : Apply patches
     ##  build           : Build sources
     ##  patch-revert    : Revert patches
-    build|patch|fetch|patch-revert)
+    build|patch|fetch|patch-revert|bash)
     ARG_TASKS="$ARG_TASKS $arg"
     ;;
     *)
