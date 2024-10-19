@@ -133,11 +133,15 @@ SCRIPTDIR=$PWD
 
 WORK_SOURCEDIR=$ARG_WORKDIR/$ARG_LABEL/work
 WORK_GENDIR=$ARG_WORKDIR/$ARG_LABEL/gen
+WORK_KERNEL_SOURCEDIR=$ARG_WORKDIR/$ARG_LABEL/kernel_work
+WORK_KERNEL_GENDIR=$ARG_WORKDIR/$ARG_LABEL/kernel_gen
 WORK_OUTDIR=$ARG_OUTDIR
 
 # TODO: chown? chmod?
 mkdir -p $WORK_SOURCEDIR
 mkdir -p $WORK_GENDIR
+mkdir -p $WORK_KERNEL_SOURCEDIR
+mkdir -p $WORK_KERNEL_GENDIR
 
 # =============================================================================
 
@@ -149,6 +153,8 @@ OPTIONS=" \
   -v $SCRIPTDIR/src:/opt/mnt_src \
   -v $WORK_SOURCEDIR:/mnt/work \
   -v $WORK_GENDIR:/mnt/gen \
+  -v $WORK_KERNEL_SOURCEDIR:/mnt/kernel_work \
+  -v $WORK_KERNEL_GENDIR:/mnt/kernel_gen \
   -v $WORK_OUTDIR:/mnt/out \
   -w /tmp/$USER_/ \
 "

@@ -22,6 +22,8 @@ RUN set -eux \
     libncurses5 lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig \
     python bc \
     python3-distutils pkg-config \
+    # kernel
+    rsync \
   && apt-get install -y -qq gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
   # repo manual install
   && export REPO=$(mktemp /tmp/repo.XXXXXXXXX) \

@@ -51,8 +51,27 @@ fi
 set +u
 source build/envsetup.sh
 lunch rpi4-eng
+if [[ $ANDROID_VERSION -eq 12 ]]; then
+  export ALLOW_NINJA_ENV=1  # TODO: can be removed?
+fi
 make ramdisk systemimage vendorimage
 set -u
+
+# ==============================================================================
+# Build kernel
+
+if [[ $ANDROID_VERSION -eq 12 ]]; then
+  cd /mnt/kernel_work
+  mkdir -p /mnt/kernel_gen/out.$ARCH
+  rm out ||:
+  ln -s /mnt/kernel_gen/out.$ARCH/ out
+
+  set +u
+  build/build.sh
+  set -u
+
+  cd -
+fi
 
 # ==============================================================================
 # Copy outputs
@@ -66,25 +85,37 @@ rm -rf $OUTDIR/boot
 mkdir -p $OUTDIR/boot
 mkdir -p $OUTDIR/boot/overlays
 
-if [[ $ARCH == "arm" ]]; then
-  cp \
-    ./device/arpi/rpi4/boot/* \
-    ./kernel/arpi/arch/$ARCH/boot/zImage \
-    ./kernel/arpi/arch/$ARCH/boot/dts/bcm2711-rpi-4-b.dtb \
-    ./out/target/product/rpi4/ramdisk.img \
-    $OUTDIR/boot
-  cp \
-    ./kernel/arpi/arch/$ARCH/boot/dts/overlays/vc4-kms-v3d-pi4.dtbo \
-    $OUTDIR/boot/overlays
 
-elif [[ $ARCH == "arm64" ]]; then
-  cp \
-    ./device/arpi/rpi4/boot/* \
-    ./kernel/arpi/arch/$ARCH/boot/Image.gz \
-    ./kernel/arpi/arch/$ARCH/boot/dts/broadcom/bcm2711-rpi-4-b.dtb \
-    ./out/target/product/rpi4/ramdisk.img \
-    $OUTDIR/boot
-  cp \
-    ./kernel/arpi/arch/$ARCH/boot/dts/overlays/vc4-kms-v3d-pi4.dtbo \
-    $OUTDIR/boot/overlays
+if [[ $ANDROID_VERSION -eq 12 ]]; then
+    cp \
+      /mnt/kernel_work/out/arpi-5.10/dist/Image.gz \
+      /mnt/kernel_work/out/arpi-5.10/dist/bcm2711-rpi-*.dtb \
+      $OUTDIR/boot
+    cp \
+      /mnt/kernel_work/out/arpi-5.10/dist/vc4-kms-v3d-pi4.dtbo \
+      $OUTDIR/boot/overlays
+
+else
+  if [[ $ARCH == "arm" ]]; then
+    cp \
+      ./device/arpi/rpi4/boot/* \
+      ./kernel/arpi/arch/$ARCH/boot/zImage \
+      ./kernel/arpi/arch/$ARCH/boot/dts/bcm2711-rpi-4-b.dtb \
+      ./out/target/product/rpi4/ramdisk.img \
+      $OUTDIR/boot
+    cp \
+      ./kernel/arpi/arch/$ARCH/boot/dts/overlays/vc4-kms-v3d-pi4.dtbo \
+      $OUTDIR/boot/overlays
+
+  elif [[ $ARCH == "arm64" ]]; then
+    cp \
+      ./device/arpi/rpi4/boot/* \
+      ./kernel/arpi/arch/$ARCH/boot/Image.gz \
+      ./kernel/arpi/arch/$ARCH/boot/dts/broadcom/bcm2711-rpi-4-b.dtb \
+      ./out/target/product/rpi4/ramdisk.img \
+      $OUTDIR/boot
+    cp \
+      ./kernel/arpi/arch/$ARCH/boot/dts/overlays/vc4-kms-v3d-pi4.dtbo \
+      $OUTDIR/boot/overlays
+  fi
 fi

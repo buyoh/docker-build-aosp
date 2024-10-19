@@ -32,3 +32,14 @@ git -C .repo/local_manifests checkout $BRANCH_ANDROID_RPI -f
 find -name 'shallow.lock' | xargs rm ||:
 
 repo sync -j4 --force-sync -f --verbose
+
+# ==============================================================================
+# Android kernel
+
+if [[ $ANDROID_VERSION -eq 12 ]]; then
+  cd /mnt/kernel_work
+  # TO fail `isatty`, use `echo |`. It suppresses `Testing colorized output`.
+  echo | repo init -u https://github.com/android-rpi/kernel_manifest -b arpi-5.10
+  repo sync -j4 --force-sync -f --verbose
+  cd -
+fi
