@@ -9,7 +9,7 @@ for task in $@; do
       :  # ok
       ;;
     bash)
-      bash
+      exec bash $SCRIPTDIR/bash.sh
       exit
       ;;
     *)
