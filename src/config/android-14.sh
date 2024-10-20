@@ -1,7 +1,7 @@
-export ANDROID_VERSION=12
-export BRANCH_AOSP_PLATFORM=android-12.1.0_r21
-export BRANCH_ANDROID_RPI=arpi-12
-export BRANCH_KERNEL_RPI=arpi-5.10
+export ANDROID_VERSION=14
+export BRANCH_AOSP_PLATFORM=android-14.0.0_r74
+export BRANCH_ANDROID_RPI=arpi14-pi4
+export BRANCH_KERNEL_RPI=arpi14-6.1.62
 
 if [[ -z "$ARG_ARCH" ]]; then
   export ARG_ARCH=arm64

@@ -1,0 +1,72 @@
+--- ./device/arpi/rpi4/AndroidProducts.mk
++++ ./device/arpi/rpi4/AndroidProducts.mk
+@@ -1,3 +1,3 @@
+ PRODUCT_MAKEFILES := $(LOCAL_DIR)/rpi4.mk
+ 
+-COMMON_LUNCH_CHOICES := rpi4-eng
++COMMON_LUNCH_CHOICES := rpi4-trunk_staging-eng
+--- ./frameworks/av/camera/ndk/Android.bp
++++ ./frameworks/av/camera/ndk/Android.bp
+@@ -163,15 +163,15 @@
+     ],
+     // TODO: jchowdhary@, use header_libs instead b/131165718
+     include_dirs: [
+         "system/media/private/camera/include",
+     ],
+-    product_variables: {
+-        pdk: {
+-            enabled: false,
+-        },
+-    },
++    // product_variables: {
++    //     pdk: {
++    //         enabled: false,
++    //     },
++    // },
+ }
+ 
+ cc_test {
+     name: "ACameraNdkVendorTest",
+     vendor: true,
+--- ./frameworks/av/media/libstagefright/http/Android.bp
++++ ./frameworks/av/media/libstagefright/http/Android.bp
+@@ -36,11 +36,11 @@
+             "signed-integer-overflow",
+         ],
+         cfi: true,
+     },
+ 
+-    product_variables: {
+-        pdk: {
+-            enabled: false,
+-        },
+-    },
++    // product_variables: {
++    //     pdk: {
++    //         enabled: false,
++    //     },
++    // },
+ }
+--- ./frameworks/av/media/ndk/Android.bp
++++ ./frameworks/av/media/ndk/Android.bp
+@@ -159,15 +159,15 @@
+ 
+     export_shared_lib_headers: [
+         "libgui",
+     ],
+ 
+-    product_variables: {
+-        pdk: {
+-            enabled: false,
+-        },
+-    },
++    // product_variables: {
++    //     pdk: {
++    //         enabled: false,
++    //     },
++    // },
+     version_script: "libmediandk.map.txt",
+     stubs: {
+         symbol_file: "libmediandk.map.txt",
+         versions: ["29"],
+     },

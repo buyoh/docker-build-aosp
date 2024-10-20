@@ -48,19 +48,21 @@ fi
 # ==============================================================================
 # Build
 
+LUNCH_SELECTION=rpi4-eng
+if [[ $ANDROID_VERSION -eq 14 ]]; then
+  LUNCH_SELECTION=rpi4-trunk_staging-eng
+fi
+
 set +u
 source build/envsetup.sh
-lunch rpi4-eng
-if [[ $ANDROID_VERSION -eq 12 ]]; then
-  export ALLOW_NINJA_ENV=1  # TODO: can be removed?
-fi
+lunch $LUNCH_SELECTION
 make ramdisk systemimage vendorimage
 set -u
 
 # ==============================================================================
 # Build kernel
 
-if [[ $ANDROID_VERSION -eq 12 ]]; then
+if [[ $ANDROID_VERSION -ge 12 ]]; then
   cd /mnt/kernel_work
   mkdir -p /mnt/kernel_gen/out.$ARCH
   rm out ||:
@@ -86,15 +88,14 @@ mkdir -p $OUTDIR/boot
 mkdir -p $OUTDIR/boot/overlays
 
 
-if [[ $ANDROID_VERSION -eq 12 ]]; then
-    cp \
-      /mnt/kernel_work/out/arpi-5.10/dist/Image.gz \
-      /mnt/kernel_work/out/arpi-5.10/dist/bcm2711-rpi-*.dtb \
-      $OUTDIR/boot
-    cp \
-      /mnt/kernel_work/out/arpi-5.10/dist/vc4-kms-v3d-pi4.dtbo \
-      $OUTDIR/boot/overlays
-
+if [[ $ANDROID_VERSION -ge 12 ]]; then
+  cp \
+    /mnt/kernel_work/out/arpi-5.10/dist/Image.gz \
+    /mnt/kernel_work/out/arpi-5.10/dist/bcm2711-rpi-*.dtb \
+    $OUTDIR/boot
+  cp \
+    /mnt/kernel_work/out/arpi-5.10/dist/vc4-kms-v3d-pi4.dtbo \
+    $OUTDIR/boot/overlays
 else
   if [[ $ARCH == "arm" ]]; then
     cp \
