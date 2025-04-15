@@ -9,7 +9,8 @@ set -eu
 # 2. Copy and edit the files that make the difference. For example,
 #    if system/bt/hci/src/hci_layer.cc needs change, copy the file to 
 #    system/bt/hci/src/hci_layer.cc.patched and edit hci_layer_cc.patched.
-# 3. run bash ../../src/patches/make_patch.sh
+# 3. Change current directory to the root of the repository and 
+#    run bash /TOOLPATH/src/patches/make_patch.sh
 
 BASEDIR=$(cd $(dirname $0); pwd)
 WORKDIR=$PWD
