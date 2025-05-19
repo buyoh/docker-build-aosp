@@ -12,4 +12,11 @@ if [[ "$ARG_ARCH" == arm ]]; then
 elif [[ "$ARG_ARCH" == arm64 ]]; then
   export ARCH=arm64
   export CROSS_COMPILE=aarch64-linux-gnu-
+elif [[ "$ARG_ARCH" == x86_64 ]]; then
+  export ARCH=x86_64
+fi
+
+if [[ -z $ARG_RPI ]]; then
+  # TODO: Retest this
+  ln -sf /usr/bin/python2 /usr/bin/python
 fi

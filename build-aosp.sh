@@ -9,6 +9,7 @@ USER_=${SUDO_USER:-${USER:-$(whoami)}}
 ARG_ADDUSER=false
 ARG_RUNAS_DAEMON=false
 ARG_ANDROID_VERSION=
+ARG_RPI=
 ARG_ARCH=
 ARG_LABEL=default
 ARG_WORKDIR=
@@ -48,7 +49,11 @@ case $arg in
     ARG_OUTDIR=$2
     shift
     ;;
-    ##  --arch          : The taget architecture (arm or arm64)
+    ##  --rpi           : Enable Raspberry Pi specific build
+    --rpi)
+    ARG_RPI=rpi4
+    ;;
+    ##  --arch          : The taget architecture (arm or arm64 or x86_64)
     --arch)
     ARG_ARCH=$2
     shift
@@ -149,6 +154,7 @@ TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
 
 OPTIONS=" \
   --env ARG_ANDROID_VERSION=$ARG_ANDROID_VERSION \
+  --env ARG_RPI=$ARG_RPI \
   --env ARG_ARCH=$ARG_ARCH \
   -v $SCRIPTDIR/src:/opt/mnt_src \
   -v $WORK_SOURCEDIR:/mnt/work \

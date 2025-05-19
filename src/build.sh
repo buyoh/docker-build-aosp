@@ -21,42 +21,54 @@ ln -s /mnt/gen/out.$ARCH/ out
 # Build kernel
 
 if [[ $ANDROID_VERSION -le 11 ]]; then
-  cd kernel/arpi
+  if [[ -n $ARG_RPI ]]; then
+    # Build kernel for Raspberry Pi
+    cd kernel/arpi
 
-  if [[ $ARCH == "arm" ]]; then
-    scripts/kconfig/merge_config.sh \
-      arch/$ARCH/configs/bcm2711_defconfig \
-      kernel/configs/android-base.config \
-      kernel/configs/android-recommended.config
-    make zImage
-    make dtbs
-  elif [[ $ARCH == "arm64" ]]; then
-    scripts/kconfig/merge_config.sh \
-      arch/$ARCH/configs/bcm2711_defconfig \
-      kernel/configs/android-base.config \
-      kernel/configs/android-recommended.config
-    make Image.gz
-    DTC_FLAGS="-@" make broadcom/bcm2711-rpi-4-b.dtb
-    DTC_FLAGS="-@" make overlays/vc4-kms-v3d-pi4.dtbo
-  else
-    echo "error: unknown pattern: android-version=$ANDROID_VERSION, arch=$ARCH"
-    exit 1
+    if [[ $ARCH == "arm" ]]; then
+      scripts/kconfig/merge_config.sh \
+        arch/$ARCH/configs/bcm2711_defconfig \
+        kernel/configs/android-base.config \
+        kernel/configs/android-recommended.config
+      make zImage
+      make dtbs
+    elif [[ $ARCH == "arm64" ]]; then
+      scripts/kconfig/merge_config.sh \
+        arch/$ARCH/configs/bcm2711_defconfig \
+        kernel/configs/android-base.config \
+        kernel/configs/android-recommended.config
+      make Image.gz
+      DTC_FLAGS="-@" make broadcom/bcm2711-rpi-4-b.dtb
+      DTC_FLAGS="-@" make overlays/vc4-kms-v3d-pi4.dtbo
+    else
+      echo "error: unknown pattern: android-version=$ANDROID_VERSION, arch=$ARCH"
+      exit 1
+    fi
+    cd -
   fi
-  cd -
 fi
 
 # ==============================================================================
 # Build
 
-LUNCH_SELECTION=rpi4-eng
-if [[ $ANDROID_VERSION -eq 14 ]]; then
-  LUNCH_SELECTION=rpi4-trunk_staging-eng
+LUNCH_SELECTION=aosp_x86_64-eng
+
+if [[ -n $ARG_RPI ]]; then
+  LUNCH_SELECTION=rpi4-eng
+  if [[ $ANDROID_VERSION -eq 14 ]]; then
+    LUNCH_SELECTION=rpi4-trunk_staging-eng
+  fi
 fi
 
 set +u
 source build/envsetup.sh
 lunch $LUNCH_SELECTION
-make ramdisk systemimage vendorimage
+if [[ -n $ARG_RPI ]]; then
+make -j $(nproc) ramdisk systemimage vendorimage
+else
+# make -j $(nproc) emulator
+m
+fi
 set -u
 
 # ==============================================================================
@@ -80,43 +92,48 @@ fi
 
 set -x
 
-cp ./out/target/product/rpi4/system.img $OUTDIR
-cp ./out/target/product/rpi4/vendor.img $OUTDIR
+if [[ -n $ARG_RPI ]]; then
+  cp ./out/target/product/rpi4/system.img $OUTDIR
+  cp ./out/target/product/rpi4/vendor.img $OUTDIR
 
-rm -rf $OUTDIR/boot
-mkdir -p $OUTDIR/boot
-mkdir -p $OUTDIR/boot/overlays
+  rm -rf $OUTDIR/boot
+  mkdir -p $OUTDIR/boot
+  mkdir -p $OUTDIR/boot/overlays
 
 
-if [[ $ANDROID_VERSION -ge 12 ]]; then
-  cp \
-    /mnt/kernel_work/out/arpi-5.10/dist/Image.gz \
-    /mnt/kernel_work/out/arpi-5.10/dist/bcm2711-rpi-*.dtb \
-    $OUTDIR/boot
-  cp \
-    /mnt/kernel_work/out/arpi-5.10/dist/vc4-kms-v3d-pi4.dtbo \
-    $OUTDIR/boot/overlays
-else
-  if [[ $ARCH == "arm" ]]; then
+  if [[ $ANDROID_VERSION -ge 12 ]]; then
     cp \
-      ./device/arpi/rpi4/boot/* \
-      ./kernel/arpi/arch/$ARCH/boot/zImage \
-      ./kernel/arpi/arch/$ARCH/boot/dts/bcm2711-rpi-4-b.dtb \
-      ./out/target/product/rpi4/ramdisk.img \
+      /mnt/kernel_work/out/arpi-5.10/dist/Image.gz \
+      /mnt/kernel_work/out/arpi-5.10/dist/bcm2711-rpi-*.dtb \
       $OUTDIR/boot
     cp \
-      ./kernel/arpi/arch/$ARCH/boot/dts/overlays/vc4-kms-v3d-pi4.dtbo \
+      /mnt/kernel_work/out/arpi-5.10/dist/vc4-kms-v3d-pi4.dtbo \
       $OUTDIR/boot/overlays
+  else
+    if [[ $ARCH == "arm" ]]; then
+      cp \
+        ./device/arpi/rpi4/boot/* \
+        ./kernel/arpi/arch/$ARCH/boot/zImage \
+        ./kernel/arpi/arch/$ARCH/boot/dts/bcm2711-rpi-4-b.dtb \
+        ./out/target/product/rpi4/ramdisk.img \
+        $OUTDIR/boot
+      cp \
+        ./kernel/arpi/arch/$ARCH/boot/dts/overlays/vc4-kms-v3d-pi4.dtbo \
+        $OUTDIR/boot/overlays
 
-  elif [[ $ARCH == "arm64" ]]; then
-    cp \
-      ./device/arpi/rpi4/boot/* \
-      ./kernel/arpi/arch/$ARCH/boot/Image.gz \
-      ./kernel/arpi/arch/$ARCH/boot/dts/broadcom/bcm2711-rpi-4-b.dtb \
-      ./out/target/product/rpi4/ramdisk.img \
-      $OUTDIR/boot
-    cp \
-      ./kernel/arpi/arch/$ARCH/boot/dts/overlays/vc4-kms-v3d-pi4.dtbo \
-      $OUTDIR/boot/overlays
+    elif [[ $ARCH == "arm64" ]]; then
+      cp \
+        ./device/arpi/rpi4/boot/* \
+        ./kernel/arpi/arch/$ARCH/boot/Image.gz \
+        ./kernel/arpi/arch/$ARCH/boot/dts/broadcom/bcm2711-rpi-4-b.dtb \
+        ./out/target/product/rpi4/ramdisk.img \
+        $OUTDIR/boot
+      cp \
+        ./kernel/arpi/arch/$ARCH/boot/dts/overlays/vc4-kms-v3d-pi4.dtbo \
+        $OUTDIR/boot/overlays
+    fi
   fi
+
+else
+  echo "Copying results for non-RPI is not implemented."
 fi

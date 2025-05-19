@@ -20,4 +20,9 @@ ln -s /mnt/gen/out.$ARCH/ out
 # ==============================================================================
 # Apply patches
 
+if [[ -z "$ARG_RPI" ]]; then
+  echo "Patches are only available for RPI."
+  exit 1
+fi
+
 $SCRIPTDIR/patches/patcher.sh --android $ANDROID_VERSION
