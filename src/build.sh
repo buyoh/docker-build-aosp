@@ -87,25 +87,27 @@ set -u
 # ==============================================================================
 # Build kernel
 
-if [[ $ANDROID_VERSION -ge 12 ]]; then
-  cd /mnt/kernel_work
-  if [[ "$ARG_NO_GEN" == "false" ]]; then
-    if [[ -e out ]] && [[ ! -L out ]]; then
-      echo "The 'out' directory already exists and is not a symlink."
-      exit 1
+if [[ -n $ARG_RPI ]]; then
+  if [[ $ANDROID_VERSION -ge 12 ]]; then
+    cd /mnt/kernel_work
+    if [[ "$ARG_NO_GEN" == "false" ]]; then
+      if [[ -e out ]] && [[ ! -L out ]]; then
+        echo "The 'out' directory already exists and is not a symlink."
+        exit 1
+      fi
+      mkdir -p /mnt/kernel_gen/out.$ARCH
+      if [[ -e out ]]; then
+        rm out
+      fi
+      ln -s /mnt/kernel_gen/out.$ARCH/ out
     fi
-    mkdir -p /mnt/kernel_gen/out.$ARCH
-    if [[ -e out ]]; then
-      rm out
-    fi
-    ln -s /mnt/kernel_gen/out.$ARCH/ out
+
+    set +u
+    build/build.sh
+    set -u
+
+    cd -
   fi
-
-  set +u
-  build/build.sh
-  set -u
-
-  cd -
 fi
 
 # ==============================================================================
