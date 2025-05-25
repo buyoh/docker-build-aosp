@@ -24,7 +24,7 @@ Next, fetch the AOSP repository and build them.
 
 ```sh
 $ mkdir -p var && mkdir -p out
-$ ./build-aosp.sh --rpi --android 11 --arch arm --label android11 \
+$ ./build-aosp.sh --rpi --android 11 --arch arm \
      --workdir ~/work/aosp/var --outdir ~/work/aosp/out \
      fetch patch build
 ```
@@ -33,7 +33,7 @@ If you don't use rootless docker, add `--adduser`.
 
 ```sh
 $ mkdir -p var && mkdir -p out
-$ sudo ./build-aosp.sh --rpi --android 11 --arch arm --label android11 \
+$ sudo ./build-aosp.sh --rpi --android 11 --arch arm \
      --workdir ~/work/aosp/var --outdir ~/work/aosp/out --adduser \
      fecth patch build
 ```

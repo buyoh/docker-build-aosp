@@ -11,7 +11,6 @@ ARG_RUNAS_DAEMON=false
 ARG_ANDROID_VERSION=
 ARG_RPI=
 ARG_ARCH=
-ARG_LABEL=default
 ARG_WORKDIR=
 ARG_OUTDIR=
 ARG_NO_GEN=false
@@ -37,12 +36,6 @@ case $arg in
     ##  --workdir       : The folder that store sources will be <WORKDIR>/<label>/work.
     --workdir)
     ARG_WORKDIR=$2
-    shift
-    ;;
-    ##  --label         : The folder that store sources will be <workdir>/<label>/work
-    ##                  : The default is 'default'.
-    --label)
-    ARG_LABEL=$2
     shift
     ;;
     ##  --outdir        : The directory that output binaries.
@@ -142,10 +135,10 @@ fi
 cd $(dirname $0)
 SCRIPTDIR=$PWD
 
-WORK_SOURCEDIR=$ARG_WORKDIR/$ARG_LABEL/work
-WORK_KERNEL_SOURCEDIR=$ARG_WORKDIR/$ARG_LABEL/kernel_work
-WORK_GENDIR=$ARG_WORKDIR/$ARG_LABEL/gen
-WORK_KERNEL_GENDIR=$ARG_WORKDIR/$ARG_LABEL/kernel_gen
+WORK_SOURCEDIR=$ARG_WORKDIR/work
+WORK_KERNEL_SOURCEDIR=$ARG_WORKDIR/kernel_work
+WORK_GENDIR=$ARG_WORKDIR/gen
+WORK_KERNEL_GENDIR=$ARG_WORKDIR/kernel_gen
 WORK_OUTDIR=$ARG_OUTDIR
 
 # TODO: chown? chmod?
