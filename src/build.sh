@@ -13,9 +13,17 @@ OUTDIR=/mnt/out/android-$ARG_ANDROID_VERSION-$ARCH
 mkdir -p $OUTDIR
 
 cd /mnt/work
-mkdir -p /mnt/gen/out.$ARCH
-rm out ||:
-ln -s /mnt/gen/out.$ARCH/ out
+if [[ "$ARG_NO_GEN" == "false" ]]; then
+  if [[ -e out ]] && [[ ! -L out ]]; then
+    echo "The 'out' directory already exists and is not a symlink."
+    exit 1
+  fi
+  mkdir -p /mnt/gen/out.$ARCH
+  if [[ -e out ]]; then
+    rm out
+  fi
+  ln -s /mnt/gen/out.$ARCH/ out
+fi
 
 # ==============================================================================
 # Build kernel
@@ -61,7 +69,7 @@ if [[ -n $ARG_RPI ]]; then
 fi
 
 set +u
-source build/envsetup.sh
+source build/envsetup.sh  # TODO: OUT_DIR?
 lunch $LUNCH_SELECTION
 if [[ -n $ARG_RPI ]]; then
 make -j $(nproc) ramdisk systemimage vendorimage
@@ -76,9 +84,17 @@ set -u
 
 if [[ $ANDROID_VERSION -ge 12 ]]; then
   cd /mnt/kernel_work
-  mkdir -p /mnt/kernel_gen/out.$ARCH
-  rm out ||:
-  ln -s /mnt/kernel_gen/out.$ARCH/ out
+  if [[ "$ARG_NO_GEN" == "false" ]]; then
+    if [[ -e out ]] && [[ ! -L out ]]; then
+      echo "The 'out' directory already exists and is not a symlink."
+      exit 1
+    fi
+    mkdir -p /mnt/kernel_gen/out.$ARCH
+    if [[ -e out ]]; then
+      rm out
+    fi
+    ln -s /mnt/kernel_gen/out.$ARCH/ out
+  fi
 
   set +u
   build/build.sh

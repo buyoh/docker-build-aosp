@@ -14,6 +14,7 @@ ARG_ARCH=
 ARG_LABEL=default
 ARG_WORKDIR=
 ARG_OUTDIR=
+ARG_NO_GEN=false
 ARG_TASKS=
 
 # =============================================================================
@@ -48,6 +49,11 @@ case $arg in
     --outdir)
     ARG_OUTDIR=$2
     shift
+    ;;
+    ##  --no-gen        : Do not create gen directory. gen directory is used to
+    ##                  : separate out directory for each architecture.
+    --no-gen)
+    ARG_NO_GEN=true
     ;;
     ##  --rpi           : Enable Raspberry Pi specific build
     --rpi)
@@ -137,16 +143,18 @@ cd $(dirname $0)
 SCRIPTDIR=$PWD
 
 WORK_SOURCEDIR=$ARG_WORKDIR/$ARG_LABEL/work
-WORK_GENDIR=$ARG_WORKDIR/$ARG_LABEL/gen
 WORK_KERNEL_SOURCEDIR=$ARG_WORKDIR/$ARG_LABEL/kernel_work
+WORK_GENDIR=$ARG_WORKDIR/$ARG_LABEL/gen
 WORK_KERNEL_GENDIR=$ARG_WORKDIR/$ARG_LABEL/kernel_gen
 WORK_OUTDIR=$ARG_OUTDIR
 
 # TODO: chown? chmod?
 mkdir -p $WORK_SOURCEDIR
-mkdir -p $WORK_GENDIR
 mkdir -p $WORK_KERNEL_SOURCEDIR
-mkdir -p $WORK_KERNEL_GENDIR
+if [[ "$ARG_NO_GEN" == "false" ]]; then
+  mkdir -p $WORK_GENDIR
+  mkdir -p $WORK_KERNEL_GENDIR
+fi
 
 # =============================================================================
 
@@ -156,14 +164,18 @@ OPTIONS=" \
   --env ARG_ANDROID_VERSION=$ARG_ANDROID_VERSION \
   --env ARG_RPI=$ARG_RPI \
   --env ARG_ARCH=$ARG_ARCH \
+  --env ARG_NO_GEN=$ARG_NO_GEN \
   -v $SCRIPTDIR/src:/opt/mnt_src \
   -v $WORK_SOURCEDIR:/mnt/work \
-  -v $WORK_GENDIR:/mnt/gen \
   -v $WORK_KERNEL_SOURCEDIR:/mnt/kernel_work \
-  -v $WORK_KERNEL_GENDIR:/mnt/kernel_gen \
   -v $WORK_OUTDIR:/mnt/out \
   -w /tmp/$USER_/ \
 "
+
+if [[ "$ARG_NO_GEN" == "false" ]]; then
+  OPTIONS="$OPTIONS -v $WORK_GENDIR:/mnt/gen"
+  OPTIONS="$OPTIONS -v $WORK_KERNEL_GENDIR:/mnt/kernel_gen"
+fi
 
 if [[ "$ARG_ADDUSER" == "true" ]]; then
   OPTIONS="$OPTIONS --env USER_=$USER_ --env UID_=$UID_ --env GID_=$GID_ "
