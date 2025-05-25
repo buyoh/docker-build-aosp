@@ -66,6 +66,11 @@ if [[ -n $ARG_RPI ]]; then
   if [[ $ANDROID_VERSION -eq 14 ]]; then
     LUNCH_SELECTION=rpi4-trunk_staging-eng
   fi
+else
+  LUNCH_SELECTION=aosp_x86_64-eng
+  if [[ $ANDROID_VERSION -eq 14 ]]; then
+    LUNCH_SELECTION=aosp_x86_64-trunk_staging-eng
+  fi
 fi
 
 set +u
