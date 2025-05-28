@@ -22,9 +22,12 @@ RUN set -eux \
     libncurses5 lib32ncurses5-dev x11proto-core-dev libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig \
     python bc \
     python3-distutils pkg-config \
+    python3.9 \
     # kernel
     rsync \
   && apt-get install -y -qq gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu \
+  # Use 3.9
+  && (cd /usr/bin && rm python3 && ln -s python3.9 python3) \
   # repo manual install
   && export REPO=$(mktemp /tmp/repo.XXXXXXXXX) \
   && curl -o ${REPO} https://storage.googleapis.com/git-repo-downloads/repo \
