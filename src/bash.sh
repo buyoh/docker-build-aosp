@@ -12,7 +12,7 @@ source $SCRIPTDIR/config/android-$ARG_ANDROID_VERSION.sh
 OUTDIR=/mnt/out/android-$ARG_ANDROID_VERSION-$ARCH
 mkdir -p $OUTDIR
 
-cd /mnt/work
+cd $CONTAINER_SRCDIR
 if [[ "$ARG_NO_GEN" == "false" ]]; then
   if [[ -e out ]] && [[ ! -L out ]]; then
     echo "The 'out' directory already exists and is not a symlink."

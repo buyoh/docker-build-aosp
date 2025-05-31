@@ -12,7 +12,7 @@ source $SCRIPTDIR/config/android-$ARG_ANDROID_VERSION.sh
 OUTDIR=/mnt/out/android-$ARG_ANDROID_VERSION-$ARCH
 mkdir -p $OUTDIR
 
-cd /mnt/work
+cd $CONTAINER_SRCDIR
 if [[ "$ARG_NO_GEN" == "false" ]]; then
   if [[ -e out ]] && [[ ! -L out ]]; then
     echo "The 'out' directory already exists and is not a symlink."
@@ -61,6 +61,8 @@ fi
 
 LUNCH_SELECTION=aosp_x86_64-eng
 
+# sdk_phone64_x86_64
+
 if [[ -n $ARG_RPI ]]; then
   LUNCH_SELECTION=rpi4-eng
   if [[ $ANDROID_VERSION -eq 14 ]]; then
@@ -70,6 +72,7 @@ else
   LUNCH_SELECTION=aosp_x86_64-eng
   if [[ $ANDROID_VERSION -eq 14 ]]; then
     LUNCH_SELECTION=aosp_x86_64-trunk_staging-eng
+    # LUNCH_SELECTION=aosp_cf_x86_64_tv-trunk_staging-eng
   fi
 fi
 

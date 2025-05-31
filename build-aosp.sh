@@ -53,6 +53,7 @@ case $arg in
     ARG_RPI=rpi4
     ;;
     ##  --arch          : The taget architecture (arm or arm64 or x86_64)
+    ##                  : The option is only used by rpi.
     --arch)
     ARG_ARCH=$2
     shift
@@ -152,14 +153,16 @@ fi
 # =============================================================================
 
 TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+CONTAINER_SRCDIR=/mnt/aosp
 
 OPTIONS=" \
   --env ARG_ANDROID_VERSION=$ARG_ANDROID_VERSION \
   --env ARG_RPI=$ARG_RPI \
   --env ARG_ARCH=$ARG_ARCH \
   --env ARG_NO_GEN=$ARG_NO_GEN \
+  --env CONTAINER_SRCDIR=$CONTAINER_SRCDIR \
   -v $SCRIPTDIR/src:/opt/mnt_src \
-  -v $WORK_SOURCEDIR:/mnt/work \
+  -v $WORK_SOURCEDIR:$CONTAINER_SRCDIR \
   -v $WORK_KERNEL_SOURCEDIR:/mnt/kernel_work \
   -v $WORK_OUTDIR:/mnt/out \
   -w /tmp/$USER_/ \
