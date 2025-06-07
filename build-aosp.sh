@@ -14,6 +14,7 @@ ARG_ARCH=
 ARG_WORKDIR=
 ARG_OUTDIR=
 ARG_NO_GEN=false
+ARG_MOUNT_SAME=false
 ARG_TASKS=
 
 # =============================================================================
@@ -47,6 +48,14 @@ case $arg in
     ##                  : separate out directory for each architecture.
     --no-gen)
     ARG_NO_GEN=true
+    ;;
+    ##  --mount-same    : Mount the current working directory to same path in the
+    ##                  : docker container. It fails if the current working
+    ##                  : directory is not available in the docker container.
+    ##                  : This option is useful when you want to avoid broken
+    ##                  : symlinks to run the emulator.
+    --mount-same)
+    ARG_MOUNT_SAME=true
     ;;
     ##  --rpi           : Enable Raspberry Pi specific build
     --rpi)
@@ -153,42 +162,59 @@ fi
 # =============================================================================
 
 TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
-CONTAINER_SRCDIR=/mnt/aosp
 
+IMAGE_NAME="env-aosp/$DIST_CODENAME:latest"
 OPTIONS=" \
   --env ARG_ANDROID_VERSION=$ARG_ANDROID_VERSION \
   --env ARG_RPI=$ARG_RPI \
   --env ARG_ARCH=$ARG_ARCH \
   --env ARG_NO_GEN=$ARG_NO_GEN \
-  --env CONTAINER_SRCDIR=$CONTAINER_SRCDIR \
-  -v $SCRIPTDIR/src:/opt/mnt_src \
-  -v $WORK_SOURCEDIR:$CONTAINER_SRCDIR \
-  -v $WORK_KERNEL_SOURCEDIR:/mnt/kernel_work \
-  -v $WORK_OUTDIR:/mnt/out \
   -w /tmp/$USER_/ \
 "
+OPTIONS_DOCKER="--init -it "
+
+OPTIONS_MOUNT=" \
+  -v $SCRIPTDIR/src:/opt/mnt_src \
+  -v $WORK_KERNEL_SOURCEDIR:/mnt/kernel_work \
+  -v $WORK_OUTDIR:/mnt/out \
+"
+
+CONTAINER_SRCDIR=/mnt/aosp
+if [[ "$ARG_MOUNT_SAME" == "true" ]]; then
+  if docker run --rm $IMAGE_NAME "test -e $WORK_SOURCEDIR" ; then
+    echo "'$WORK_SOURCEDIR' is already in used in the docker container."
+    exit 1
+  else
+    CONTAINER_SRCDIR=$WORK_SOURCEDIR
+  fi
+else
+  CONTAINER_SRCDIR=/mnt/aosp
+fi
+
+OPTIONS="$OPTIONS --env CONTAINER_SRCDIR=$CONTAINER_SRCDIR"
+OPTIONS_MOUNT="$OPTIONS_MOUNT -v $WORK_SOURCEDIR:$CONTAINER_SRCDIR"
 
 if [[ "$ARG_NO_GEN" == "false" ]]; then
-  OPTIONS="$OPTIONS -v $WORK_GENDIR:/mnt/gen"
-  OPTIONS="$OPTIONS -v $WORK_KERNEL_GENDIR:/mnt/kernel_gen"
+  OPTIONS_MOUNT="$OPTIONS_MOUNT -v $WORK_GENDIR:/mnt/gen"
+  OPTIONS_MOUNT="$OPTIONS_MOUNT -v $WORK_KERNEL_GENDIR:/mnt/kernel_gen"
 fi
 
 if [[ "$ARG_ADDUSER" == "true" ]]; then
   OPTIONS="$OPTIONS --env USER_=$USER_ --env UID_=$UID_ --env GID_=$GID_ "
 fi
 
-DOCKER_OPTIONS="-it "
 COMMAND_REDIRECTS=""
 
 if [[ "$ARG_RUNAS_DAEMON" == "true" ]]; then
-  DOCKER_OPTIONS="-d "
+  OPTIONS_DOCKER="-d "
   COMMAND_REDIRECTS="2>&1 | tee /mnt/out/console-$TIMESTAMP.log"
 fi
 
 # Commonize the user namespace
-DOCKER_OPTIONS="$DOCKER_OPTIONS --userns=host --privileged "
+OPTIONS_DOCKER="$OPTIONS_DOCKER --userns=host --privileged "
+# OPTIONS_DOCKER="$OPTIONS_DOCKER --net host "
 
 exec docker run \
-  --init --rm $DOCKER_OPTIONS $OPTIONS \
-  env-aosp/$DIST_CODENAME:latest \
+  --rm $OPTIONS_DOCKER $OPTIONS $OPTIONS_MOUNT \
+  $IMAGE_NAME \
   "cp -ar /opt/mnt_src /tmp/src && bash /tmp/src/start.sh $ARG_TASKS $COMMAND_REDIRECTS"
