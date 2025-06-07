@@ -1,5 +1,10 @@
 export ANDROID_VERSION=14
-export BRANCH_AOSP_PLATFORM=android-14.0.0_r74
+if [[ -n $ARG_RPI ]]; then
+  # https://github.com/android-rpi/local_manifests/tree/arpi14-pi4
+  export BRANCH_AOSP_PLATFORM=android-14.0.0_r17
+else
+  export BRANCH_AOSP_PLATFORM=android-14.0.0_r74
+fi
 export BRANCH_ANDROID_RPI=arpi14-pi4
 export BRANCH_KERNEL_RPI=arpi14-6.1.62
 
