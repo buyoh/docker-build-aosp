@@ -65,9 +65,9 @@ LUNCH_SELECTION=aosp_x86_64-eng
 
 if [[ -n $ARG_RPI ]]; then
   LUNCH_SELECTION=rpi4-eng
-  if [[ $ANDROID_VERSION -eq 14 ]]; then
-    LUNCH_SELECTION=rpi4-trunk_staging-eng
-  fi
+  # if [[ $ANDROID_VERSION -eq 14 ]]; then  # r17 may be unnecessary
+  #   LUNCH_SELECTION=rpi4-trunk_staging-eng
+  # fi
 else
   LUNCH_SELECTION=aosp_x86_64-eng
   if [[ $ANDROID_VERSION -eq 14 ]]; then
@@ -80,7 +80,16 @@ set +u
 source build/envsetup.sh  # TODO: OUT_DIR?
 lunch $LUNCH_SELECTION
 if [[ -n $ARG_RPI ]]; then
-make -j $(nproc) ramdisk systemimage vendorimage
+  if [[ $ANDROID_VERSION -eq 14 ]]; then
+    # https://discussions.unity.com/t/major-bug-in-android-14-breaks-building-aosp-for-debian-ubuntu-users/931277/3
+    python development/vndk/tools/header-checker/utils/create_reference_dumps.py -l libcrypto
+  fi
+
+  if [[ $ANDROID_VERSION -eq 14 ]]; then
+    m -j $(nproc) ramdisk systemimage vendorimage
+  else
+    make -j $(nproc) ramdisk systemimage vendorimage
+  fi
 else
 # make -j $(nproc) emulator
 m

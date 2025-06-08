@@ -70,3 +70,15 @@
          symbol_file: "libmediandk.map.txt",
          versions: ["29"],
      },
+--- ./build/soong/ui/build/paths/config.go
++++ ./build/soong/ui/build/paths/config.go
+@@ -126,6 +126,9 @@ var Configuration = map[string]PathConfig{
+ 	"pgrep": LinuxOnlyPrebuilt,
+ 	"pkill": LinuxOnlyPrebuilt,
+ 	"ps":    LinuxOnlyPrebuilt,
++
++	// Raspberry Pi
++	"ninja": Log,
+ }
+ 
+ func init() {
