@@ -60,10 +60,19 @@ for PATCHFILE in $(find . -name "*$PATCHNAME"); do
       mv $L_BASEFILE.patched.orig $L_BASEFILE
     done
   else
-    patch -p0 -N $REVERTFLG < $BASEDIR/$PATCHFILE ||:
+    if [[ -n "$REVERTFLG" ]]; then
+      patch -p0 -N -r - $REVERTFLG < $BASEDIR/$PATCHFILE ||:
+    else
+      if patch -p0 -N -R --dry-run < $BASEDIR/$PATCHFILE >/dev/null; then
+        echo "Patch $PATCHFILE is already applied."
+      else
+        # Apply patch
+        patch -p0 -N -r - $REVERTFLG < $BASEDIR/$PATCHFILE ||:
+      fi
+    fi
   fi
   popd > /dev/null
-  echo "applied: $PATCHFILE"
+  echo "done: $PATCHFILE"
 done
 
 popd > /dev/null
