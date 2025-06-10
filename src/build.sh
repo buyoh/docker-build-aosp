@@ -100,7 +100,7 @@ set -u
 # Build kernel
 
 if [[ -n $ARG_RPI ]]; then
-  if [[ $ANDROID_VERSION -ge 12 ]]; then
+  if [[ $ANDROID_VERSION -ge 12 ]] || [[ $ANDROID_VERSION -eq 14 ]]; then
     cd /mnt/kernel_work
     if [[ "$ARG_NO_GEN" == "false" ]]; then
       if [[ -e out ]] && [[ ! -L out ]]; then
@@ -137,6 +137,10 @@ if [[ -n $ARG_RPI ]]; then
 
 
   if [[ $ANDROID_VERSION -ge 12 ]]; then
+    cp \
+      ./device/arpi/rpi4/boot/* \
+      ./out/target/product/rpi4/ramdisk.img \
+      $OUTDIR/boot
     cp \
       /mnt/kernel_work/out/arpi-5.10/dist/Image.gz \
       /mnt/kernel_work/out/arpi-5.10/dist/bcm2711-rpi-*.dtb \

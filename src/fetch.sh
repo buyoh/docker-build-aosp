@@ -53,5 +53,11 @@ if [[ -n $ARG_RPI ]]; then
     echo | repo init -u https://github.com/android-rpi/kernel_manifest -b arpi-5.10
     repo sync -j4 --force-sync -f --verbose
     cd -
+  elif [[ $ANDROID_VERSION -eq 14 ]]; then
+    cd /mnt/kernel_work
+    # TO fail `isatty`, use `echo |`. It suppresses `Testing colorized output`.
+    echo | repo init -u https://github.com/android-rpi/kernel_manifest -b arpi14-6.1.62
+    repo sync -j4 --force-sync -f --verbose
+    cd -
   fi
 fi
