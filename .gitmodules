@@ -1,0 +1,3 @@
+[submodule "docs-ai"]
+	path = docs-ai
+	url = git@github.com:buyoh/docs-ai.git
