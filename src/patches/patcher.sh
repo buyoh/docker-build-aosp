@@ -25,9 +25,7 @@ case $arg in
   ;;
   --make-patched)
   # The result will be same as make_patch.sh input format
-  # NOT TESTED
   MODE_MAKE_PATCHED=yes
-  shift
   ;;
   # --help|-h)
   # usage
@@ -53,11 +51,33 @@ for PATCHFILE in $(find . -name "*$PATCHNAME"); do
 
   pushd $WORKDIR/$PATCHDIR > /dev/null
   if [[ $MODE_MAKE_PATCHED == "yes" ]]; then
-    SIMPLE_BACKUP_SUFFIX=.patched.orig patch -p0 -N $REVERTFLG < $BASEDIR/$PATCHFILE ||:
-    for L_ORIGFILE in $(find . -name "*.patched.orig"); do
-      L_BASEFILE=${L_ORIGFILE%".patched.orig"}
+    # Save patched files as <file>.patched and keep the tree unchanged.
+    if [[ -n "$REVERTFLG" ]]; then
+      echo "error: --make-patched cannot be used with --revert." >&2
+      exit 2
+    fi
+    if grep -q '^+++ /dev/null' $BASEDIR/$PATCHFILE; then
+      echo "error: --make-patched does not support deleting files: $PATCHFILE" >&2
+      exit 1
+    fi
+    if ! patch -p0 -f -N -F0 --dry-run < $BASEDIR/$PATCHFILE > /dev/null; then
+      echo "error: $PATCHFILE cannot be applied cleanly." >&2
+      exit 1
+    fi
+    L_TARGETS=$(sed -n 's/^+++ \([^[:space:]]*\).*/\1/p' $BASEDIR/$PATCHFILE)
+    L_CREATED=
+    for L_BASEFILE in $L_TARGETS; do
+      if [[ ! -e $L_BASEFILE ]]; then L_CREATED="$L_CREATED $L_BASEFILE "; fi
+    done
+    SIMPLE_BACKUP_SUFFIX=.patched.orig patch -p0 -f -N -F0 -b < $BASEDIR/$PATCHFILE > /dev/null
+    for L_BASEFILE in $L_TARGETS; do
       mv $L_BASEFILE $L_BASEFILE.patched
-      mv $L_BASEFILE.patched.orig $L_BASEFILE
+      if [[ "$L_CREATED" == *" $L_BASEFILE "* ]]; then
+        # patch -b makes an empty backup for a created file. Keep it absent.
+        rm -f $L_BASEFILE.patched.orig
+      else
+        mv $L_BASEFILE.patched.orig $L_BASEFILE
+      fi
     done
   else
     # -f: never ask questions (e.g. "File to patch:") even if a tty exists.

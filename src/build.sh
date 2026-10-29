@@ -144,5 +144,7 @@ if [[ -n $ARG_RPI ]]; then
   fi
 
 else
-  echo "Copying results for non-RPI is not implemented."
+  echo "warning: Copying results for non-RPI is not implemented." >&2
+  echo "warning: The results are in out/target/product/ of the AOSP source directory." >&2
+  echo "warning: It is <workdir>/gen/out.$ARCH/target/product/ on the host unless --no-gen is given." >&2
 fi

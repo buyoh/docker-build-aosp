@@ -10,7 +10,7 @@ Build AOSP for Raspberry Pi 4 on the docker environment
   - Fetch and build AOSP for RPi 4 on docker.
 - make-image.sh
   - Make a SD card image from build output files.
-  - `out/aosp10-rpi.img` will be generated.
+  - `<outdir>/android-<version>-<arch>.img` will be generated.
 
 ## Hands on
 
@@ -35,8 +35,26 @@ If you don't use rootless docker, add `--adduser`.
 $ mkdir -p var && mkdir -p out
 $ sudo ./build-aosp.sh --rpi --android 11 --arch arm --mount-same \
      --workdir ~/work/aosp/var --outdir ~/work/aosp/out --adduser \
-     fecth patch build
+     fetch patch build
 ```
+
+Android 14 for RPi 4 supports only arm64.
+
+```sh
+$ ./build-aosp.sh --rpi --android 14 --arch arm64 \
+     --workdir ~/work/aosp/var --outdir ~/work/aosp/out \
+     fetch patch build
+```
+
+By default, `out` in the AOSP source directory is a symlink to
+`<workdir>/gen/out.<arch>`. If `out` is a real directory (e.g. it was built
+without this tool), the tasks stop. Add `--no-gen` to use the `out` directory
+as it is.
+
+With `--daemon`, the container runs in background and the console output is
+written to `<outdir>/console-<timestamp>.log`. The container is removed after
+it exits, so the exit status is written at the end of the log
+(`exit status: <code>`).
 
 Finally make image via outputs
 
@@ -55,13 +73,13 @@ $ ls ~/work/aosp/out/*.img
   - build outputs
 - base
   - Dockerfile
-- user
-  - Dockerfile
+- tests
+  - tests for scripts (`bash tests/run-tests.sh`)
 
 ## Limitation
 
-- Only AOSP 10, 11 supported.
-  - Android 12 support is ongoing...
+- AOSP 10, 11, 12 and 14 are supported.
+  - Android 12 and 14 support is ongoing. See test.md for the tested status.
 - Enabling wifi causes crashes.
   - RPi 4 has an ethernet adapter so we can use it.
 - Supporting arm / arm32

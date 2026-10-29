@@ -41,4 +41,7 @@ never_pulls() {
 }
 assert "build-aosp.sh never pulls the image implicitly" never_pulls
 
+assert "clean-after-apt.sh does not use brace expansion (run by dash)" \
+  bash -c "! grep -q '{.*,.*}' $REPODIR/base/clean-after-apt.sh"
+
 finish

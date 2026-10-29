@@ -29,7 +29,7 @@ case $arg in
     --adduser)
     ARG_ADDUSER=true
     ;;
-    ##  --android       : The android version (10 or 11)
+    ##  --android       : The android version (10, 11, 12 or 14)
     --android)
     ARG_ANDROID_VERSION=$2
     shift
@@ -181,11 +181,17 @@ OPTIONS_MOUNT=" \
 
 CONTAINER_SRCDIR=/mnt/aosp
 if [[ "$ARG_MOUNT_SAME" == "true" ]]; then
-  if docker run --rm --pull=never $IMAGE_NAME "test -e $WORK_SOURCEDIR" ; then
-    echo "'$WORK_SOURCEDIR' is already in used in the docker container."
+  # 0: exists, 1: does not exist, others: docker itself failed
+  L_RC=0
+  docker run --rm --pull=never $IMAGE_NAME "test -e $WORK_SOURCEDIR" || L_RC=$?
+  if [[ $L_RC -eq 0 ]]; then
+    echo "error: '$WORK_SOURCEDIR' is already in use in the docker container." >&2
     exit 1
-  else
+  elif [[ $L_RC -eq 1 ]]; then
     CONTAINER_SRCDIR=$WORK_SOURCEDIR
+  else
+    echo "error: Failed to run the docker image '$IMAGE_NAME' (exit code $L_RC)." >&2
+    exit 1
   fi
 else
   CONTAINER_SRCDIR=/mnt/aosp
@@ -207,14 +213,20 @@ COMMAND_REDIRECTS=""
 
 if [[ "$ARG_RUNAS_DAEMON" == "true" ]]; then
   OPTIONS_DOCKER="-d "
-  COMMAND_REDIRECTS="2>&1 | tee /mnt/out/console-$TIMESTAMP.log"
+  LOGFILE=/mnt/out/console-$TIMESTAMP.log
+  # The container is removed after exit (--rm), so record the exit status.
+  COMMAND_REDIRECTS="2>&1 | tee $LOGFILE; L_RC=\$?; echo \"exit status: \$L_RC\" >> $LOGFILE; exit \$L_RC"
+  echo "The log will be written to $WORK_OUTDIR/console-$TIMESTAMP.log"
 fi
 
-# Commonize the user namespace
+# Commonize the user namespace.
+# --privileged is required by nsjail, the build sandbox of soong. Without it,
+# soong disables sandboxing and the build behaves differently. The risk is
+# limited on rootless docker, which is the expected environment.
 OPTIONS_DOCKER="$OPTIONS_DOCKER --userns=host --privileged "
 # OPTIONS_DOCKER="$OPTIONS_DOCKER --net host "
 
 exec docker run \
   --rm --pull=never $OPTIONS_DOCKER $OPTIONS $OPTIONS_MOUNT \
   $IMAGE_NAME \
-  "cp -ar /opt/mnt_src /tmp/src && bash /tmp/src/start.sh $ARG_TASKS $COMMAND_REDIRECTS"
+  "set -o pipefail; cp -ar /opt/mnt_src /tmp/src && bash /tmp/src/start.sh $ARG_TASKS $COMMAND_REDIRECTS"

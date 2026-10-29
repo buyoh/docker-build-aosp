@@ -21,8 +21,9 @@ if [[ -n $ARG_RPI ]]; then
   git -C .repo/local_manifests checkout $BRANCH_ANDROID_RPI -f
 fi
 
-# TODO: Required??
-find -name 'shallow.lock' | xargs rm ||:
+# Stale locks of interrupted fetches. The repo tool makes each project's .git
+# a symlink to .repo/projects, so the locks exist only under .repo.
+find .repo -name 'shallow.lock' -delete ||:
 
 repo sync -j4 --force-sync -f --verbose
 

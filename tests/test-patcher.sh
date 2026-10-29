@@ -86,6 +86,28 @@ setup_tree
 sed -i 's/bar/QUX/' $L_TMP/work/b/y.txt
 assert "apply to a conflicting tree fails" fails_patcher
 
+# --make-patched: patched files are saved as *.patched, and the tree is kept
+setup_tree
+make_patched_tree() {
+  # The tree is unchanged except *.patched files.
+  diff -r -x '*.patched' $L_TMP/work $L_TMP/orig > /dev/null || return 1
+  for L_F in a/x.txt b/y.txt a/new.txt; do
+    diff -q $L_TMP/work/$L_F.patched $L_TMP/patched/$L_F > /dev/null || return 1
+  done
+}
+no_patched_orig() {
+  [[ -z $(find $L_TMP/work -name '*.patched.orig') ]]
+}
+assert "make-patched: options after --make-patched are parsed" run_patcher --make-patched
+assert "make-patched: *.patched files are created and the tree is kept" make_patched_tree
+assert "make-patched: a created file is not left in the tree" test ! -e $L_TMP/work/a/new.txt
+assert "make-patched: no *.patched.orig files" no_patched_orig
+
+rm -rf $L_TMP/work && cp -r $L_TMP/patched $L_TMP/work
+assert "make-patched: a patched tree fails" fails_patcher --make-patched
+assert "make-patched: a patched tree is not modified" same_as patched
+assert "make-patched: with --revert fails" fails_patcher --make-patched -R
+
 # The patch is applicable with an offset even after applied.
 setup_tree
 printf 'l1\nl2\nl3\nl4\nl5\nl6\nl1\nl2\nl3\nl4\nl5\nl6\n' > $L_TMP/work/a/x.txt
