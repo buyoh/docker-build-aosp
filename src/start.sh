@@ -8,7 +8,7 @@ for task in $@; do
     build|patch|fetch|patch-revert)
       :  # ok
       ;;
-    bash)
+    bash)  # 移行のタスクを実行しない
       exec bash $SCRIPTDIR/bash.sh
       exit
       ;;
