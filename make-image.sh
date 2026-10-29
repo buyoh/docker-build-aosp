@@ -91,7 +91,8 @@ mkdir -p $TMPDIR
 
 # Allocate image
 TMP_OUTIMG=$TMPDIR/$OUTFILENAME.tmp
-dd if=/dev/zero of=$TMP_OUTIMG bs=128M count=24  # 3G
+# dd if=/dev/zero of=$TMP_OUTIMG bs=128M count=24  # 3G
+dd if=/dev/zero of=$TMP_OUTIMG bs=128M count=56
 
 # Create partitions
 TMP_LOOPFILE=$(sudo losetup -f)

@@ -1,4 +1,5 @@
 start=        2048, size=      251904, type=c, bootable
-start=      253952, size=     2930688, type=c
-start=     3184640, size=      501760, type=c
-start=     3686400, size=     2605056, type=83
+start=      253952, size=     6291456, type=c
+start=     6545408, size=     2093056, type=c
+start=     8638464, size=     1048576, type=83
+

@@ -26,7 +26,7 @@ if [[ "$ARG_NO_GEN" == "false" ]]; then
 fi
 
 # ==============================================================================
-# Build kernel
+# Build kernel (Android <= 11)
 
 if [[ $ANDROID_VERSION -le 11 ]]; then
   if [[ -n $ARG_RPI ]]; then
@@ -59,26 +59,27 @@ fi
 # ==============================================================================
 # Build
 
-LUNCH_SELECTION=aosp_x86_64-eng
+LUNCH_CHOICE=aosp_x86_64-eng
 
 # sdk_phone64_x86_64
 
 if [[ -n $ARG_RPI ]]; then
-  LUNCH_SELECTION=rpi4-eng
+  # LUNCH_CHOICE=rpi4-userdebug
+  LUNCH_CHOICE=rpi4_tv-userdebug
   # if [[ $ANDROID_VERSION -eq 14 ]]; then  # r17 may be unnecessary
-  #   LUNCH_SELECTION=rpi4-trunk_staging-eng
+  #   LUNCH_CHOICE=rpi4-trunk_staging-eng
   # fi
 else
-  LUNCH_SELECTION=aosp_x86_64-eng
+  LUNCH_CHOICE=aosp_x86_64-eng
   if [[ $ANDROID_VERSION -eq 14 ]]; then
-    LUNCH_SELECTION=aosp_x86_64-trunk_staging-eng
-    # LUNCH_SELECTION=aosp_cf_x86_64_tv-trunk_staging-eng
+    # LUNCH_CHOICE=aosp_x86_64-trunk_staging-eng
+    LUNCH_CHOICE=aosp_cf_x86_64_tv-trunk_staging-eng
   fi
 fi
 
 set +u
 source build/envsetup.sh  # TODO: OUT_DIR?
-lunch $LUNCH_SELECTION
+lunch $LUNCH_CHOICE
 if [[ -n $ARG_RPI ]]; then
   if [[ $ANDROID_VERSION -eq 14 ]]; then
     # https://discussions.unity.com/t/major-bug-in-android-14-breaks-building-aosp-for-debian-ubuntu-users/931277/3
@@ -97,10 +98,10 @@ fi
 set -u
 
 # ==============================================================================
-# Build kernel
+# Build kernel (Android >= 12)
 
 if [[ -n $ARG_RPI ]]; then
-  if [[ $ANDROID_VERSION -ge 12 ]] || [[ $ANDROID_VERSION -eq 14 ]]; then
+  if [[ $ANDROID_VERSION -ge 12 ]]; then
     cd /mnt/kernel_work
     if [[ "$ARG_NO_GEN" == "false" ]]; then
       if [[ -e out ]] && [[ ! -L out ]]; then
