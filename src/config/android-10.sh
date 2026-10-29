@@ -14,9 +14,23 @@ elif [[ "$ARG_ARCH" == arm64 ]]; then
   export CROSS_COMPILE=aarch64-linux-gnu-
 elif [[ "$ARG_ARCH" == x86_64 ]]; then
   export ARCH=x86_64
+else
+  echo "error: unsupported arch: $ARG_ARCH" >&2
+  exit 2
+fi
+
+if [[ -n $ARG_RPI ]] && [[ "$ARG_ARCH" == x86_64 ]]; then
+  echo "error: Android 10 for RPi supports only arm and arm64." >&2
+  exit 2
 fi
 
 if [[ -z $ARG_RPI ]]; then
   # TODO: Retest this
   ln -sf /usr/bin/python2 /usr/bin/python
+fi
+
+if [[ -n $ARG_RPI ]]; then
+  LUNCH_CHOICE=rpi4-eng
+else
+  LUNCH_CHOICE=aosp_x86_64-eng
 fi

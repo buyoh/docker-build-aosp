@@ -1,5 +1,8 @@
 ARG DIST_CODENAME=focal
-FROM ubuntu:$DIST_CODENAME
+# Pin the base image (ubuntu:focal). A tag is ignored if a digest is given,
+# so update the digest together with DIST_CODENAME.
+ARG UBUNTU_DIGEST=sha256:80ef4a44043dec4490506e6cc4289eeda2d106a70148b74b5ae91ee670e9c35d
+FROM ubuntu@$UBUNTU_DIGEST
 
 ARG DIST_CODENAME=focal
 ARG UBUNTU_APT_URL=http://archive.ubuntu.com/ubuntu/
@@ -34,9 +37,10 @@ RUN set -eux \
   && gpg --recv-key 8BB9AD793E8E6153AF0F9A4416530D5E920F5C65 \
   && curl -s https://storage.googleapis.com/git-repo-downloads/repo.asc | gpg --verify - ${REPO} && install -m 755 ${REPO} /usr/local/bin/repo \
   # pip3
-  && curl https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py \
-  && python3 /tmp/get-pip.py \
-  && pip3 install meson mako ninja \
+  && curl https://bootstrap.pypa.io/pip/3.9/get-pip.py -o /tmp/get-pip.py \
+  && python3 /tmp/get-pip.py pip==24.2 \
+  # meson and ninja affect the mesa3d build outputs
+  && pip3 install meson==1.5.2 mako==1.3.5 MarkupSafe==2.1.5 ninja==1.11.1.1 \
   # clean up
   && . /clean-after-apt.sh
 # workaround: use python3 for repo

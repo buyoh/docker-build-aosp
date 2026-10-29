@@ -60,15 +60,29 @@ for PATCHFILE in $(find . -name "*$PATCHNAME"); do
       mv $L_BASEFILE.patched.orig $L_BASEFILE
     done
   else
-    if [[ -n "$REVERTFLG" ]]; then
-      patch -p0 -N -r - $REVERTFLG < $BASEDIR/$PATCHFILE ||:
-    else
-      if patch -p0 -N -R --dry-run < $BASEDIR/$PATCHFILE >/dev/null; then
-        echo "Patch $PATCHFILE is already applied."
+    # -f: never ask questions (e.g. "File to patch:") even if a tty exists.
+    # -N: never treat a patch as reversed implicitly.
+    PATCH_OPTS="-p0 -f -N --no-backup-if-mismatch"
+    if [[ -n "$REVERTFLG" ]]; then INVERSEFLG=; else INVERSEFLG=-R; fi
+    # Check both directions without fuzz. A patch may be applicable with an
+    # offset even if it is already applied, so require exactly one of them.
+    FORWARD_OK=yes
+    patch $PATCH_OPTS -F0 $REVERTFLG --dry-run < $BASEDIR/$PATCHFILE >/dev/null || FORWARD_OK=no
+    INVERSE_OK=yes
+    patch $PATCH_OPTS -F0 $INVERSEFLG --dry-run < $BASEDIR/$PATCHFILE >/dev/null || INVERSE_OK=no
+    if [[ $FORWARD_OK == yes ]] && [[ $INVERSE_OK == no ]]; then
+      patch $PATCH_OPTS -F0 $REVERTFLG < $BASEDIR/$PATCHFILE
+    elif [[ $FORWARD_OK == no ]] && [[ $INVERSE_OK == yes ]]; then
+      if [[ -n "$REVERTFLG" ]]; then
+        echo "Patch $PATCHFILE is already reverted."
       else
-        # Apply patch
-        patch -p0 -N -r - $REVERTFLG < $BASEDIR/$PATCHFILE ||:
+        echo "Patch $PATCHFILE is already applied."
       fi
+    else
+      echo "error: Cannot determine whether $PATCHFILE is applied or not." >&2
+      echo "error: The tree may be partially patched or modified." >&2
+      patch $PATCH_OPTS -F0 $REVERTFLG --dry-run < $BASEDIR/$PATCHFILE >&2 ||:
+      exit 1
     fi
   fi
   popd > /dev/null

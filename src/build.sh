@@ -2,28 +2,7 @@
 
 set -eux
 
-# We never push commits
-git config --global user.email "user@example.com"
-git config --global user.name "user.name"
-
-SCRIPTDIR=$(cd $(dirname $0) && pwd)
-
-source $SCRIPTDIR/config/android-$ARG_ANDROID_VERSION.sh
-OUTDIR=/mnt/out/android-$ARG_ANDROID_VERSION-$ARCH
-mkdir -p $OUTDIR
-
-cd $CONTAINER_SRCDIR
-if [[ "$ARG_NO_GEN" == "false" ]]; then
-  if [[ -e out ]] && [[ ! -L out ]]; then
-    echo "The 'out' directory already exists and is not a symlink."
-    exit 1
-  fi
-  mkdir -p /mnt/gen/out.$ARCH
-  if [[ -e out ]]; then
-    rm out
-  fi
-  ln -s /mnt/gen/out.$ARCH/ out
-fi
+source $(cd $(dirname ${BASH_SOURCE[0]}) && pwd)/preprocess.sh
 
 # ==============================================================================
 # Build kernel (Android <= 11)
@@ -59,31 +38,15 @@ fi
 # ==============================================================================
 # Build
 
-LUNCH_CHOICE=aosp_x86_64-eng
-
-# sdk_phone64_x86_64
-
-if [[ -n $ARG_RPI ]]; then
-  # LUNCH_CHOICE=rpi4-userdebug
-  LUNCH_CHOICE=rpi4_tv-userdebug
-  # if [[ $ANDROID_VERSION -eq 14 ]]; then  # r17 may be unnecessary
-  #   LUNCH_CHOICE=rpi4-trunk_staging-eng
-  # fi
-else
-  LUNCH_CHOICE=aosp_x86_64-eng
-  if [[ $ANDROID_VERSION -eq 14 ]]; then
-    # LUNCH_CHOICE=aosp_x86_64-trunk_staging-eng
-    LUNCH_CHOICE=aosp_cf_x86_64_tv-trunk_staging-eng
-  fi
-fi
-
 set +u
 source build/envsetup.sh  # TODO: OUT_DIR?
 lunch $LUNCH_CHOICE
 if [[ -n $ARG_RPI ]]; then
   if [[ $ANDROID_VERSION -eq 14 ]]; then
+    # The prebuilt ABI reference dump of libcrypto mismatches the build.
     # https://discussions.unity.com/t/major-bug-in-android-14-breaks-building-aosp-for-debian-ubuntu-users/931277/3
-    python development/vndk/tools/header-checker/utils/create_reference_dumps.py -l libcrypto
+    # Skip ABI checks instead of regenerating the dumps in the source tree.
+    export SKIP_ABI_CHECKS=true
   fi
 
   if [[ $ANDROID_VERSION -eq 14 ]]; then
@@ -119,6 +82,12 @@ if [[ -n $ARG_RPI ]]; then
     build/build.sh
     set -u
 
+    # KERNEL_DIST_DIR must match BRANCH in build.config of the kernel.
+    if [[ ! -d out/$KERNEL_DIST_DIR/dist ]]; then
+      echo "error: out/$KERNEL_DIST_DIR/dist not found. Check KERNEL_DIST_DIR." >&2
+      exit 1
+    fi
+
     cd -
   fi
 fi
@@ -143,11 +112,11 @@ if [[ -n $ARG_RPI ]]; then
       ./out/target/product/rpi4/ramdisk.img \
       $OUTDIR/boot
     cp \
-      /mnt/kernel_work/out/arpi-5.10/dist/Image.gz \
-      /mnt/kernel_work/out/arpi-5.10/dist/bcm2711-rpi-*.dtb \
+      /mnt/kernel_work/out/$KERNEL_DIST_DIR/dist/Image.gz \
+      /mnt/kernel_work/out/$KERNEL_DIST_DIR/dist/bcm2711-rpi-*.dtb \
       $OUTDIR/boot
     cp \
-      /mnt/kernel_work/out/arpi-5.10/dist/vc4-kms-v3d-pi4.dtbo \
+      /mnt/kernel_work/out/$KERNEL_DIST_DIR/dist/vc4-kms-v3d-pi4.dtbo \
       $OUTDIR/boot/overlays
   else
     if [[ $ARCH == "arm" ]]; then

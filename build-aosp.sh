@@ -181,7 +181,7 @@ OPTIONS_MOUNT=" \
 
 CONTAINER_SRCDIR=/mnt/aosp
 if [[ "$ARG_MOUNT_SAME" == "true" ]]; then
-  if docker run --rm $IMAGE_NAME "test -e $WORK_SOURCEDIR" ; then
+  if docker run --rm --pull=never $IMAGE_NAME "test -e $WORK_SOURCEDIR" ; then
     echo "'$WORK_SOURCEDIR' is already in used in the docker container."
     exit 1
   else
@@ -215,6 +215,6 @@ OPTIONS_DOCKER="$OPTIONS_DOCKER --userns=host --privileged "
 # OPTIONS_DOCKER="$OPTIONS_DOCKER --net host "
 
 exec docker run \
-  --rm $OPTIONS_DOCKER $OPTIONS $OPTIONS_MOUNT \
+  --rm --pull=never $OPTIONS_DOCKER $OPTIONS $OPTIONS_MOUNT \
   $IMAGE_NAME \
   "cp -ar /opt/mnt_src /tmp/src && bash /tmp/src/start.sh $ARG_TASKS $COMMAND_REDIRECTS"
