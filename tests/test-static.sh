@@ -44,4 +44,13 @@ assert "build-aosp.sh never pulls the image implicitly" never_pulls
 assert "clean-after-apt.sh does not use brace expansion (run by dash)" \
   bash -c "! grep -q '{.*,.*}' $REPODIR/base/clean-after-apt.sh"
 
+# A hunk without a file header is silently dropped by GNU patch.
+has_header_before_first_hunk() {
+  awk '/^\+\+\+ /{ok = 1} /^@@/{exit !ok}' $1
+}
+for L_FILE in $REPODIR/src/patches/android-*.patch; do
+  assert "${L_FILE#$REPODIR/} has a file header before the first hunk" \
+    has_header_before_first_hunk $L_FILE
+done
+
 finish

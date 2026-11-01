@@ -1,3 +1,5 @@
+--- ./system/bt/hci/src/hci_layer.cc
++++ ./system/bt/hci/src/hci_layer.cc
 @@ -375,6 +375,18 @@
    startup_future = NULL;
  }

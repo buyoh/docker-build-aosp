@@ -11,6 +11,8 @@ Build AOSP for Raspberry Pi 4 on the docker environment
 - make-image.sh
   - Make a SD card image from build output files.
   - `<outdir>/android-<version>-<arch>.img` will be generated.
+- src/check-upstream.sh
+  - Check if the upstream has been updated. See [UPSTREAM.md](UPSTREAM.md).
 
 ## Hands on
 
@@ -63,6 +65,9 @@ $ ./make-image.sh --outdir ~/work/aosp/out -t android-11-arm
 $ ls ~/work/aosp/out/*.img
 ```
 
+The size of `/data` partition is 4096 MiB by default. Use `--data-size <MiB>`
+to change it.
+
 ## Directories
 
 - src
@@ -87,5 +92,5 @@ $ ls ~/work/aosp/out/*.img
 ## 
 
 Based on:
-- https://github.com/android-rpi/device_arpi_rpi4/tree/arpi-10
+- https://github.com/android-rpi/device_arpi_rpi4 (See [UPSTREAM.md](UPSTREAM.md) for the followed upstream and intentional deviations)
 - devenv-docker
