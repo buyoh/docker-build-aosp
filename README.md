@@ -14,6 +14,14 @@ Build AOSP on the rootless docker environment.
 - src/check-upstream.sh
   - Check if the upstream has been updated. See [UPSTREAM.md](UPSTREAM.md).
 
+## Requirements
+
+- Docker (rootless)
+- Python 3.8 or later on the host. `build-aosp.sh` is a wrapper of `src/build_aosp.py`.
+- PyYAML on the host, only to use `--config` (`sudo apt install python3-yaml`
+  or `pip install pyyaml`). With `sudo ./build-aosp.sh`, `/usr/bin/python3` is
+  used, so PyYAML installed by pip for the user is not visible.
+
 ## Hands on
 
 First you need to create a docker image (for example, `env-aosp/focal`):
@@ -50,6 +58,21 @@ written to `<outdir>/console-<timestamp>.log`. The container is removed after
 it exits, so the exit status is written at the end of the log
 (`exit status: <code>`).
 
+### Config file
+
+The parameters can be written in a YAML file instead of the command line.
+See [build-aosp.example.yaml](build-aosp.example.yaml) for the keys and their
+descriptions. Command line options override the values in the file.
+
+```sh
+$ cp build-aosp.example.yaml build-aosp.yaml   # and edit it
+$ ./build-aosp.sh --config build-aosp.yaml fetch patch build
+$ ./build-aosp.sh --config build-aosp.yaml --print-config   # show the resolved values
+```
+
+Each run writes the resolved configuration to
+`<outdir>/build-config-<timestamp>.json` as a record.
+
 Finally make image via outputs
 
 ```sh
@@ -71,7 +94,9 @@ to change it.
 - base
   - Dockerfile
 - tests
-  - tests for scripts (`bash tests/run-tests.sh`)
+  - tests for scripts (`bash tests/run-tests.sh`). The python tests are in
+    `tests/py`. `TEST_IN_IMAGE=1` also runs them with the python of the
+    docker image.
 
 ## Limitation
 

@@ -31,15 +31,7 @@ assert "Dockerfile pins the base image digest" \
   grep -q '^FROM .*@\$UBUNTU_DIGEST$' $REPODIR/base/Dockerfile
 assert "Dockerfile pins pip packages" \
   bash -c "grep 'pip3 install' $REPODIR/base/Dockerfile | grep -q 'meson==.*ninja=='"
-# Join continuation lines and check every docker run command.
-never_pulls() {
-  local L_JOINED
-  L_JOINED=$(joined $REPODIR/build-aosp.sh)
-  [[ $(grep -c 'docker run' <<< "$L_JOINED") -gt 0 ]] && \
-  [[ $(grep -c 'docker run' <<< "$L_JOINED") -eq \
-     $(grep -c 'docker run *--rm --pull=never' <<< "$L_JOINED") ]]
-}
-assert "build-aosp.sh never pulls the image implicitly" never_pulls
+# build-aosp.sh: see tests/py/test_host.py (--pull=never).
 
 assert "clean-after-apt.sh does not use brace expansion (run by dash)" \
   bash -c "! grep -q '{.*,.*}' $REPODIR/base/clean-after-apt.sh"
