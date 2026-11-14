@@ -1,13 +1,13 @@
 # aosp-rpi
 
-Build AOSP for Raspberry Pi 4 on the docker environment
+Build AOSP on the rootless docker environment.
 
 ## Scripts
 
 - setup-dockerimage.sh
   - Make and setup docker images for building AOSP.
 - build-aosp.sh
-  - Fetch and build AOSP for RPi 4 on docker.
+  - Fetch and build AOSP on docker.
 - make-image.sh
   - Make a SD card image from build output files.
   - `<outdir>/android-<version>-<arch>.img` will be generated.
@@ -16,27 +16,19 @@ Build AOSP for Raspberry Pi 4 on the docker environment
 
 ## Hands on
 
-First we need to create a docker image:
+First you need to create a docker image (for example, `env-aosp/focal`):
 
 ```sh
 $ ./setup-dockerimage.sh --apt-country jp
 ```
 
 Next, fetch the AOSP repository and build them.
+If you don't use rootless docker, add `--adduser` (deprecated).
 
 ```sh
 $ mkdir -p var && mkdir -p out
 $ ./build-aosp.sh --rpi --android 11 --arch arm --mount-same \
      --workdir ~/work/aosp/var --outdir ~/work/aosp/out \
-     fetch patch build
-```
-
-If you don't use rootless docker, add `--adduser`.
-
-```sh
-$ mkdir -p var && mkdir -p out
-$ sudo ./build-aosp.sh --rpi --android 11 --arch arm --mount-same \
-     --workdir ~/work/aosp/var --outdir ~/work/aosp/out --adduser \
      fetch patch build
 ```
 
