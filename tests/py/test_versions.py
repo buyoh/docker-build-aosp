@@ -88,10 +88,10 @@ class TestBuildKinds(unittest.TestCase):
 
     def test_generic(self):
         r = resolve("14", False, "x86_64")
-        self.assertEqual(r["aosp_make"],
-                         {"tool": "m", "parallel": False, "targets": []})
+        self.assertEqual(r["aosp_make"], {"tool": "m", "parallel": False,
+                                          "targets": ["droid", "hosttar"]})
         self.assertEqual(r["kernel_build"], "none")
-        self.assertEqual(r["artifacts"], "none")
+        self.assertEqual(r["artifacts"], "cuttlefish")
         self.assertEqual(r["build_env"],
                          {"ARCH": "x86_64", "ALLOW_NINJA_ENV": "1"})
         self.assertEqual(r["aosp_branch"], "android-14.0.0_r74")
@@ -100,6 +100,132 @@ class TestBuildKinds(unittest.TestCase):
         self.assertTrue(resolve("10", False, "x86_64")["python2_as_python"])
         self.assertFalse(resolve("10", True, None)["python2_as_python"])
         self.assertFalse(resolve("11", False, "x86_64")["python2_as_python"])
+
+
+class TestPlatformAndFormFactor(unittest.TestCase):
+    """--platform / --form-factor (form-factor-and-run-targets/01)."""
+
+    LUNCH = {
+        ("cuttlefish", "phone"): "aosp_cf_x86_64_phone-trunk_staging-eng",
+        ("cuttlefish", "tv"): "aosp_cf_x86_64_tv-trunk_staging-eng",
+        ("cuttlefish", "auto"): "aosp_cf_x86_64_auto-trunk_staging-eng",
+        ("emulator", "phone"): "sdk_phone64_x86_64-trunk_staging-eng",
+        ("emulator", "tv"): "sdk_atv_x86-trunk_staging-eng",
+        ("emulator", "auto"): "sdk_car_x86_64-trunk_staging-eng",
+    }
+
+    def test_14_non_rpi_default(self):
+        r = resolve("14", False, None)
+        self.assertEqual(r["lunch_choice"],
+                         "aosp_cf_x86_64_tv-trunk_staging-eng")
+        self.assertEqual((r["platform"], r["form_factor"], r["arch"]),
+                         ("cuttlefish", "tv", "x86_64"))
+        self.assertEqual(r["outdir_name"], "android-14-x86_64")
+
+    def test_14_non_rpi_table(self):
+        for (platform, ff), lunch in self.LUNCH.items():
+            with self.subTest(platform=platform, form_factor=ff):
+                r = resolve("14", False, None, platform, ff)
+                self.assertEqual(r["lunch_choice"], lunch)
+                self.assertTrue(r["lunch_choice"].endswith("-eng"))
+                self.assertEqual(r["arch"], "x86_64")
+                self.assertEqual(r["artifacts"], platform)
+
+    def test_14_make_targets(self):
+        self.assertEqual(
+            resolve("14", False, None, "emulator")["aosp_make"]["targets"],
+            ["droid", "emu_img_zip"])
+        self.assertEqual(
+            resolve("14", False, None, "cuttlefish")["aosp_make"]["targets"],
+            ["droid", "hosttar"])
+
+    def test_14_non_rpi_arch(self):
+        self.assertEqual(resolve("14", False, "x86_64")["arch"], "x86_64")
+        for arch in ("arm", "arm64"):
+            with self.assertRaisesRegex(ConfigError,
+                                        "for cuttlefish supports only x86_64"):
+                resolve("14", False, arch)
+        with self.assertRaisesRegex(ConfigError,
+                                    "for emulator supports only x86_64"):
+            resolve("14", False, "arm64", "emulator")
+
+    def test_14_rpi(self):
+        for ff in (None, "tv"):
+            r = resolve("14", True, None, None, ff)
+            self.assertEqual(r["lunch_choice"], "rpi4_tv-userdebug")
+            self.assertEqual(r["platform"], "rpi4")
+            self.assertEqual(r["outdir_name"], "android-14-arm64")
+        self.assertEqual(resolve("14", True, None, "rpi4")["lunch_choice"],
+                         "rpi4_tv-userdebug")
+
+    def test_14_rpi_phone_and_auto(self):
+        for ff in ("phone", "auto"):
+            with self.assertRaisesRegex(
+                    ConfigError, "RPi supports only form factor: tv.*"
+                    "cuttlefish or emulator for %s.*another --workdir" % ff):
+                resolve("14", True, None, None, ff)
+
+    def test_inconsistent_rpi_and_platform(self):
+        with self.assertRaisesRegex(ConfigError, "inconsistent"):
+            resolve("14", True, None, "cuttlefish")
+        with self.assertRaisesRegex(ConfigError, "inconsistent"):
+            resolve("14", False, None, "rpi4")
+
+    def test_unknown_values(self):
+        with self.assertRaisesRegex(ConfigError, "unsupported platform: pc"):
+            resolve("14", False, None, "pc")
+        with self.assertRaisesRegex(ConfigError,
+                                    "unsupported form factor: wear"):
+            resolve("14", False, None, None, "wear")
+        # The form factor is checked before the platform specific table.
+        with self.assertRaisesRegex(ConfigError,
+                                    "unsupported form factor: wear"):
+            resolve("14", True, None, None, "wear")
+
+    def test_10_to_12(self):
+        for v in ("10", "11", "12"):
+            with self.subTest(version=v):
+                r = resolve(v, False, "x86_64")
+                self.assertEqual((r["platform"], r["form_factor"]),
+                                 ("emulator", "phone"))
+                self.assertEqual(r["lunch_choice"], "aosp_x86_64-eng")
+                self.assertEqual(r["artifacts"], "none")
+                self.assertEqual(r["aosp_make"]["targets"], [])
+                self.assertEqual(r["outdir_name"], "android-%s-x86_64" % v)
+                r = resolve(v, False, "x86_64", "emulator", "phone")
+                self.assertEqual(r["lunch_choice"], "aosp_x86_64-eng")
+                r = resolve(v, True, None, "rpi4", "tv")
+                self.assertEqual(r["lunch_choice"], "rpi4-eng")
+
+    def test_10_to_12_other_values(self):
+        cases = [(False, "cuttlefish", None, "emulator/phone"),
+                 (False, None, "tv", "emulator/phone"),
+                 (False, None, "auto", "emulator/phone"),
+                 (True, None, "phone", "rpi4/tv")]
+        for v in ("10", "11", "12"):
+            for rpi, platform, ff, supported in cases:
+                with self.subTest(version=v, platform=platform, ff=ff):
+                    with self.assertRaisesRegex(
+                            ConfigError, "Android %s supports only %s"
+                            % (v, supported)):
+                        resolve(v, rpi, None if rpi else "x86_64",
+                                platform, ff)
+
+    def test_outdir_name(self):
+        cases = [
+            (("14", True, None, None, None), "android-14-arm64"),
+            (("14", False, None, None, None), "android-14-x86_64"),
+            (("14", False, None, "cuttlefish", "tv"), "android-14-x86_64"),
+            (("14", False, None, None, "auto"), "android-14-x86_64-auto"),
+            (("14", False, None, "emulator", None),
+             "android-14-x86_64-emulator"),
+            (("14", False, None, "emulator", "auto"),
+             "android-14-x86_64-emulator-auto"),
+            (("12", False, "x86_64", None, None), "android-12-x86_64"),
+        ]
+        for args, name in cases:
+            with self.subTest(args=args):
+                self.assertEqual(resolve(*args)["outdir_name"], name)
 
 
 class TestStatic(unittest.TestCase):

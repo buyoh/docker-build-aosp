@@ -7,7 +7,11 @@ set -eu
 BASEDIR=$(cd $(dirname $0); pwd)
 WORKDIR=$PWD
 
-PATCHNAME=android-10.patch
+# The patch set: rpi (android-<version>.patch) or generic
+# (android-<version>-generic.patch, for non-RPi). The file name distinguishes
+# them because the directory of a patch file is where it is applied.
+PATCHSET=rpi
+ANDROID_VER=10
 REVERTFLG=
 # REVERTFLG=-R
 MODE_MAKE_PATCHED=no
@@ -20,7 +24,11 @@ case $arg in
   REVERTFLG=-R
   ;;
   --android)
-  PATCHNAME=android-$2.patch
+  ANDROID_VER=$2
+  shift
+  ;;
+  --set)
+  PATCHSET=$2
   shift
   ;;
   --make-patched)
@@ -38,6 +46,15 @@ case $arg in
 esac
 shift
 done
+
+case "$PATCHSET" in
+  rpi) PATCHNAME=android-$ANDROID_VER.patch ;;
+  generic) PATCHNAME=android-$ANDROID_VER-generic.patch ;;
+  *)
+  echo "Unknown patch set: $PATCHSET"
+  exit 2
+  ;;
+esac
 
 
 pushd $BASEDIR > /dev/null

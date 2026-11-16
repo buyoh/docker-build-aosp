@@ -116,6 +116,7 @@ class TestCompatibility(HostTestCase):
                                      "--privileged"])
         self.assertEqual(self.envs(argv), [
             "ARG_ANDROID_VERSION=14", "ARG_RPI=rpi4", "ARG_ARCH=arm64",
+            "ARG_PLATFORM=", "ARG_FORM_FACTOR=",
             "ARG_NO_GEN=false", "CONTAINER_SRCDIR=/mnt/aosp"])
         user = os.environ.get("USER") or pwd.getpwuid(os.getuid()).pw_name
         self.assertIn("/tmp/%s/" % user, argv)
@@ -265,6 +266,112 @@ class TestErrors(HostTestCase):
                          "error: Android 14 for RPi supports only arm64.")
         self.assertError(self.rpi14("--arch", "aarch64", "build"),
                          "error: unsupported arch: aarch64")
+
+
+class TestPlatformAndFormFactor(HostTestCase):
+    """--platform / --form-factor (form-factor-and-run-targets/01)."""
+
+    def build14(self, *args, **kwargs):
+        return self.build_aosp("--android", "14", "--workdir", self.var,
+                               "--outdir", self.out, *args, **kwargs)
+
+    def test_passed_to_container(self):
+        self.assertEqual(self.build14("--platform", "emulator",
+                                      "--form-factor", "auto", "build"),
+                         0, self.stderr)
+        envs = self.envs(self.run_call())
+        self.assertIn("ARG_PLATFORM=emulator", envs)
+        self.assertIn("ARG_FORM_FACTOR=auto", envs)
+        self.assertIn("ARG_RPI=", envs)
+
+    def test_rpi_is_platform_rpi4(self):
+        for args in (["--rpi"], ["--platform", "rpi4"],
+                     ["--rpi", "--platform", "rpi4"]):
+            with self.subTest(args=args):
+                if os.path.exists(self.log):
+                    os.unlink(self.log)
+                self.assertEqual(self.build14(*args, "build"), 0, self.stderr)
+                self.assertIn("ARG_RPI=rpi4", self.envs(self.run_call()))
+
+    def test_resolved_config(self):
+        self.assertEqual(self.build14("--platform", "emulator",
+                                      "--form-factor", "tv",
+                                      "--print-config"), 0, self.stderr)
+        data = json.loads(self.stdout)
+        self.assertEqual(data["platform"], "emulator")
+        self.assertEqual(data["form_factor"], "tv")
+        self.assertEqual(data["lunch_choice"],
+                         "sdk_atv_x86-trunk_staging-eng")
+        self.assertEqual(data["outdir_name"], "android-14-x86_64-emulator")
+
+    def test_default_arch_of_non_rpi_14(self):
+        self.assertEqual(self.build14("--print-config"), 0, self.stderr)
+        data = json.loads(self.stdout)
+        self.assertEqual(data["arch"], "x86_64")
+        self.assertEqual(data["platform"], "cuttlefish")
+        self.assertEqual(data["outdir_name"], "android-14-x86_64")
+
+    def assertError(self, rc, message):
+        self.assertEqual(rc, 2, self.stderr)
+        self.assertIn(message, self.stderr)
+        self.assertEqual(self.calls(), [])
+        self.assertEqual(self.configs(), [])
+
+    def test_conflict(self):
+        self.assertError(self.build14("--rpi", "--platform", "cuttlefish",
+                                      "build"),
+                         "--rpi (rpi: true) conflicts with --platform "
+                         "cuttlefish")
+
+    def test_unknown_values(self):
+        self.assertError(self.build14("--platform", "pc", "build"),
+                         "unsupported platform: pc")
+        self.assertError(self.build14("--form-factor", "wear", "build"),
+                         "unsupported form_factor: wear")
+
+    def test_rpi_phone(self):
+        self.assertError(self.build14("--rpi", "--form-factor", "phone",
+                                      "build"),
+                         "Android 14 for RPi supports only form factor: tv")
+
+    def test_non_rpi_arm64(self):
+        self.assertError(self.build14("--arch", "arm64", "build"),
+                         "Android 14 for cuttlefish supports only x86_64.")
+
+    def test_old_version(self):
+        self.assertError(self.build_aosp(
+            "--android", "12", "--arch", "x86_64", "--platform",
+            "cuttlefish", "--workdir", self.var, "--outdir", self.out,
+            "build"), "Android 12 supports only emulator/phone")
+
+    @unittest.skipUnless(has_yaml(), "PyYAML is not installed")
+    def test_config_file(self):
+        path = os.path.join(self.dir, "c.yaml")
+        with open(path, "w") as f:
+            f.write("schema: 1\nandroid: 14\nplatform: emulator\n"
+                    "form_factor: phone\nworkdir: var\noutdir: out\n")
+        self.assertEqual(self.build_aosp("--config", path, "build"), 0,
+                         self.stderr)
+        envs = self.envs(self.run_call())
+        self.assertIn("ARG_PLATFORM=emulator", envs)
+        self.assertIn("ARG_FORM_FACTOR=phone", envs)
+
+    @unittest.skipUnless(has_yaml(), "PyYAML is not installed")
+    def test_config_file_rpi_conflicts_with_cli_platform(self):
+        path = os.path.join(self.dir, "c.yaml")
+        with open(path, "w") as f:
+            f.write("schema: 1\nandroid: 14\nrpi: true\n"
+                    "workdir: var\noutdir: out\n")
+        self.assertError(self.build_aosp("--config", path, "--platform",
+                                         "emulator", "build"),
+                         "conflicts with --platform emulator")
+        # --no-rpi overrides the file.
+        self.assertEqual(self.build_aosp("--config", path, "--no-rpi",
+                                         "--platform", "emulator", "build"),
+                         0, self.stderr)
+        envs = self.envs(self.run_call())
+        self.assertIn("ARG_RPI=", envs)
+        self.assertIn("ARG_PLATFORM=emulator", envs)
 
 
 class TestDaemon(HostTestCase):

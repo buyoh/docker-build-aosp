@@ -2,6 +2,8 @@ export ANDROID_VERSION=10
 export BRANCH_AOSP_PLATFORM=android-10.0.0_r41
 export BRANCH_ANDROID_RPI=arpi-10
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/platform.sh"
+
 if [[ -z "$ARG_ARCH" ]]; then
   export ARG_ARCH=arm
 fi

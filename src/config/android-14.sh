@@ -10,8 +10,14 @@ export BRANCH_KERNEL_RPI=arpi14-6.1.62
 # The kernel output directory (out/<BRANCH>/dist), BRANCH is defined in build.config
 KERNEL_DIST_DIR=arpi14-6.1
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/platform.sh"
+
 if [[ -z "$ARG_ARCH" ]]; then
-  export ARG_ARCH=arm64
+  if [[ -n $ARG_RPI ]]; then
+    export ARG_ARCH=arm64
+  else
+    export ARG_ARCH=x86_64
+  fi
 fi
 
 if [[ "$ARG_ARCH" == arm ]]; then
@@ -33,10 +39,30 @@ if [[ -n $ARG_RPI ]] && [[ "$ARG_ARCH" != arm64 ]]; then
   exit 2
 fi
 
+# The lunch targets of non-RPi are always x86. Do not build x86_64 in
+# gen/out.arm64.
+if [[ -z $ARG_RPI ]] && [[ "$ARG_ARCH" != x86_64 ]]; then
+  echo "error: Android 14 for $ARG_PLATFORM supports only x86_64." >&2
+  exit 2
+fi
+
 export ALLOW_NINJA_ENV=1
 
-if [[ -n $ARG_RPI ]]; then
-  LUNCH_CHOICE=rpi4_tv-userdebug
-else
-  LUNCH_CHOICE=aosp_cf_x86_64_tv-trunk_staging-eng
-fi
+# The lunch targets by platform and form factor. The non-RPi tree is r74, so
+# the release config is required. All non-RPi variants are eng to avoid
+# relinking (docs-ai/info/form-factor-build/05).
+case "$ARG_PLATFORM/$ARG_FORM_FACTOR" in
+  rpi4/tv)          LUNCH_CHOICE=rpi4_tv-userdebug ;;
+  cuttlefish/phone) LUNCH_CHOICE=aosp_cf_x86_64_phone-trunk_staging-eng ;;
+  cuttlefish/tv)    LUNCH_CHOICE=aosp_cf_x86_64_tv-trunk_staging-eng ;;
+  cuttlefish/auto)  LUNCH_CHOICE=aosp_cf_x86_64_auto-trunk_staging-eng ;;
+  emulator/phone)   LUNCH_CHOICE=sdk_phone64_x86_64-trunk_staging-eng ;;
+  # r74 has no x86_64 TV product for the emulator.
+  emulator/tv)      LUNCH_CHOICE=sdk_atv_x86-trunk_staging-eng ;;
+  emulator/auto)    LUNCH_CHOICE=sdk_car_x86_64-trunk_staging-eng ;;
+  *)
+    # Only rpi4/phone and rpi4/auto reach here.
+    echo "error: Android 14 for RPi supports only form factor: tv. Use --platform cuttlefish or emulator for $ARG_FORM_FACTOR with another --workdir (the AOSP tag differs from RPi)." >&2
+    exit 2
+    ;;
+esac

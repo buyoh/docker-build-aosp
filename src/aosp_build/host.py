@@ -97,6 +97,15 @@ def parse_config(argv: List[str]) -> tuple:
         if task not in TASKS:
             raise Exit(2, "Unknown task: %s" % task)
 
+    # --rpi is the same as --platform rpi4. Conflicting values are errors,
+    # not "the last one wins" (also between the command line and the file).
+    if values["rpi"] and values["platform"] not in (None, "rpi4"):
+        raise Exit(2, "--rpi (rpi: true) conflicts with --platform %s. "
+                   "Use --no-rpi to override rpi: true in the config file."
+                   % values["platform"])
+    if values["platform"] == "rpi4":
+        values["rpi"] = True
+
     if values["android"] is None:
         raise Exit(2, "--android is required. e.g. '10'.")
     if values["android"] not in versions.VERSIONS:
@@ -175,7 +184,8 @@ def write_config(path: str, config: ResolvedConfig) -> None:
 def run(argv: List[str]) -> int:
     values, tasks, args = parse_config(argv)
     resolved = versions.resolve(values["android"], values["rpi"],
-                                values["arch"])
+                                values["arch"], values["platform"],
+                                values["form_factor"])
 
     workdir = values["workdir"]
     outdir = values["outdir"]
@@ -221,6 +231,9 @@ def run(argv: List[str]) -> int:
         "--env", "ARG_ANDROID_VERSION=%s" % values["android"],
         "--env", "ARG_RPI=%s" % ("rpi4" if values["rpi"] else ""),
         "--env", "ARG_ARCH=%s" % (values["arch"] or ""),
+        # As given. The config in the container applies the defaults.
+        "--env", "ARG_PLATFORM=%s" % (values["platform"] or ""),
+        "--env", "ARG_FORM_FACTOR=%s" % (values["form_factor"] or ""),
         "--env", "ARG_NO_GEN=%s" % ("false" if use_gen else "true"),
         "-w", "/tmp/%s/" % user,
         "--env", "CONTAINER_SRCDIR=%s" % container_srcdir,

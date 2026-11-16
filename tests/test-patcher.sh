@@ -138,4 +138,42 @@ else
   echo "skip: script command is not available"
 fi
 
+# --set: rpi (android-<v>.patch, default) and generic (android-<v>-generic.patch)
+setup_tree
+rm -rf $L_TMP/orig && cp -r $L_TMP/work $L_TMP/orig
+(
+  cd $L_TMP
+  sed 's/line2/RPI/' orig/a/x.txt > $L_TMP/x.rpi
+  diff -U 3 --label ./a/x.txt --label ./a/x.txt orig/a/x.txt $L_TMP/x.rpi
+) > $L_TMP/patches/android-98.patch
+(
+  cd $L_TMP
+  sed 's/bar/GENERIC/' orig/b/y.txt > $L_TMP/y.generic
+  diff -U 3 --label ./b/y.txt --label ./b/y.txt orig/b/y.txt $L_TMP/y.generic
+) > $L_TMP/patches/android-98-generic.patch
+run_patcher_98() {
+  (cd $L_TMP/work && bash $PATCHER "$@") < /dev/null > $L_TMP/log 2>&1
+}
+only_rpi_applied() {
+  grep -qx RPI $L_TMP/work/a/x.txt && grep -qx bar $L_TMP/work/b/y.txt
+}
+only_generic_applied() {
+  grep -qx line2 $L_TMP/work/a/x.txt && grep -qx GENERIC $L_TMP/work/b/y.txt
+}
+assert "set: rpi is the default" run_patcher_98 --android 98
+assert "set: only android-98.patch is applied" only_rpi_applied
+assert "set: rpi revert" run_patcher_98 -R --android 98 --set rpi
+assert "set: rpi revert restores the tree" same_as orig
+assert "set: generic" run_patcher_98 --set generic --android 98
+assert "set: only android-98-generic.patch is applied" only_generic_applied
+assert "set: generic revert (options in another order)" \
+  run_patcher_98 --android 98 -R --set generic
+assert "set: generic revert restores the tree" same_as orig
+unknown_set_fails() {
+  run_patcher_98 --set foo --android 98
+  [[ $? -eq 2 ]]
+}
+assert "set: unknown set fails with 2" unknown_set_fails
+assert "set: unknown set does not modify the tree" same_as orig
+
 finish

@@ -15,7 +15,8 @@ set -eu
 BASEDIR=$(cd $(dirname $0); pwd)
 WORKDIR=$PWD
 
-PATCHNAME=android-99.patch
+PATCHSET=rpi
+ANDROID_VER=99
 MOD_SUFFIX=.patched
 REMOVE_PATCHFILE=
 
@@ -24,7 +25,11 @@ do
 arg="$1"
 case $arg in
     --android)
-    PATCHNAME=android-$2.patch
+    ANDROID_VER=$2
+    shift
+    ;;
+    --set)
+    PATCHSET=$2
     shift
     ;;
     --mod-suffix)
@@ -45,6 +50,15 @@ case $arg in
 esac
 shift
 done
+
+case "$PATCHSET" in
+  rpi) PATCHNAME=android-$ANDROID_VER.patch ;;
+  generic) PATCHNAME=android-$ANDROID_VER-generic.patch ;;
+  *)
+  echo "Unknown patch set: $PATCHSET"
+  exit 2
+  ;;
+esac
 
 PATCHPATH=$BASEDIR/$PATCHNAME
 

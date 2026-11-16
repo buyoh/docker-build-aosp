@@ -1,0 +1,14 @@
+--- ./device/google/atv/products/sdk_atv_x86.mk
++++ ./device/google/atv/products/sdk_atv_x86.mk
+@@ -23,5 +23,11 @@
+ 
+ # Overrides
+ PRODUCT_BRAND := Android
+ PRODUCT_NAME := sdk_atv_x86
+ PRODUCT_DEVICE := emulator_x86
++
++# Fallback IME and Home apps. Same as aosp_tv_x86 and Cuttlefish TV.
++# aosp_tv_x86.mk adds them only for TARGET_PRODUCT=aosp_tv_x86. (build-aosp-rpi)
++PRODUCT_PACKAGES += \
++    LeanbackIME \
++    TvSampleLeanbackLauncher

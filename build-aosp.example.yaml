@@ -22,12 +22,30 @@ schema: 1
 android: 14
 
 # Build for Raspberry Pi 4 (true) or for the emulator (false).
-# Default: false. Command line: --rpi
+# The same as "platform: rpi4".
+# Default: false. Command line: --rpi / --no-rpi
 rpi: true
 
+# The platform to build for: rpi4, cuttlefish or emulator.
+# rpi4 is the same as "rpi: true". "rpi: true" with another platform is an
+# error. Android 10-12 support only the default.
+# Default: rpi4 if rpi is true, otherwise cuttlefish (14) or emulator (10-12).
+# Command line: --platform
+platform:
+
+# The form factor: phone, tv or auto.
+# RPi supports only tv. Android 10-12 support only the default.
+# Default: tv (14, and RPi of 10-12), phone (non-RPi of 10-12).
+# The output directory gets a suffix if the platform or the form factor is
+# not the default (e.g. android-14-x86_64-emulator-auto).
+# Command line: --form-factor
+form_factor:
+
 # The target architecture: arm, arm64 or x86_64.
-# Default: depends on the android version (10: arm, 11/12/14: arm64).
-# Android 12 and 14 for RPi support only arm64.
+# Default: depends on the android version (10: arm, 11/12: arm64,
+# 14: arm64 for RPi and x86_64 for the others).
+# Android 12 and 14 for RPi support only arm64. Android 14 for cuttlefish
+# and emulator supports only x86_64.
 # Command line: --arch
 arch: arm64
 

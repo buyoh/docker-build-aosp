@@ -14,7 +14,7 @@ SOURCES = sorted(glob.glob(REPODIR + "/src/**/*.py", recursive=True))
 ENV_SOURCES = [p for p in SOURCES
                if "/aosp_build/" in p or p.endswith("/container_main.py")]
 # The scripts the user runs. Each must be a wrapper of a python script.
-WRAPPERS = ["build-aosp.sh"]
+WRAPPERS = ["build-aosp.sh", "run-aosp.sh"]
 
 
 def rel(path: str) -> str:

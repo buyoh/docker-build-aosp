@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import Any, Optional, Tuple
 
 from aosp_build import ConfigError
+from aosp_build.versions import FORM_FACTORS, PLATFORMS
 
 
 @dataclass(frozen=True)
@@ -28,10 +29,24 @@ class Field:
 FIELDS = (
     Field("android", "version", "The android version (10, 11, 12 or 14)",
           cli="--android", metavar="VERSION"),
-    Field("rpi", "bool", "Enable Raspberry Pi specific build", cli="--rpi"),
+    Field("rpi", "bool",
+          "Enable Raspberry Pi specific build. Same as --platform rpi4.",
+          cli="--rpi", cli_negate="--no-rpi"),
+    Field("platform", "str",
+          "The platform to build for (rpi4, cuttlefish or emulator). "
+          "The default is rpi4 with --rpi, otherwise depends on the android "
+          "version (14: cuttlefish, 10-12: emulator).",
+          cli="--platform", choices=PLATFORMS,
+          metavar="PLATFORM"),
+    Field("form_factor", "str",
+          "The form factor (phone, tv or auto). The default depends on the "
+          "android version and the platform (14: tv). RPi supports only tv.",
+          cli="--form-factor", choices=FORM_FACTORS,
+          metavar="FORM_FACTOR"),
     Field("arch", "str",
           "The taget architecture (arm or arm64 or x86_64). "
-          "The option is only used by rpi.",
+          "For Android 14, rpi supports only arm64 (default) and the "
+          "others only x86_64 (default).",
           cli="--arch", choices=("arm", "arm64", "x86_64"), metavar="ARCH"),
     Field("workdir", "path",
           "The folder that store sources will be <WORKDIR>/work.",
@@ -65,6 +80,8 @@ FIELDS_BY_KEY = {f.key: f for f in FIELDS}
 DEFAULTS = {
     "android": None,
     "rpi": False,
+    "platform": None,
+    "form_factor": None,
     "arch": None,
     "workdir": None,
     "outdir": None,

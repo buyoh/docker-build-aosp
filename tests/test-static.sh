@@ -27,6 +27,13 @@ assert "build.sh has no hard-coded kernel dist directory" \
   bash -c "! grep -q 'out/arpi-' $REPODIR/src/build.sh"
 assert "build.sh does not regenerate ABI reference dumps" \
   bash -c "! grep -q 'create_reference_dumps' $REPODIR/src/build.sh"
+# lunch unsets BUILD_VAR_CACHE_READY, and get_build_var fails under set -u.
+assert "build.sh does not use get_build_var" \
+  bash -c "! grep -qE '^[^#]*get_build_var' $REPODIR/src/build.sh"
+for L_TASK in patch patch-revert; do
+  assert "$L_TASK.sh uses the generic patch set for non-RPi" \
+    grep -q 'patcher.sh .*--set generic' $REPODIR/src/$L_TASK.sh
+done
 assert "Dockerfile pins the base image digest" \
   grep -q '^FROM .*@\$UBUNTU_DIGEST$' $REPODIR/base/Dockerfile
 assert "Dockerfile pins pip packages" \

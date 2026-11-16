@@ -5,6 +5,8 @@ export BRANCH_KERNEL_RPI=arpi-5.10
 # The kernel output directory (out/<BRANCH>/dist), BRANCH is defined in build.config
 KERNEL_DIST_DIR=arpi-5.10
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/platform.sh"
+
 if [[ -z "$ARG_ARCH" ]]; then
   export ARG_ARCH=arm64
 fi

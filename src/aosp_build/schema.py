@@ -21,6 +21,8 @@ class ResolvedConfig:
     android_rpi_branch: str
     kernel_rpi_branch: Optional[str]
     kernel_dist_dir: Optional[str]
+    platform: str
+    form_factor: str
     lunch_choice: str
     aosp_make: Dict[str, Any]
     kernel_build: str

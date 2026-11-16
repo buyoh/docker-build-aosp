@@ -13,6 +13,9 @@ run_config() {
     set -eu
     ARG_RPI=$L_RPI
     ARG_ARCH=$L_ARCH
+    # T_PLATFORM / T_FORM_FACTOR: --platform / --form-factor (optional)
+    ARG_PLATFORM=${T_PLATFORM:-}
+    ARG_FORM_FACTOR=${T_FORM_FACTOR:-}
     # android-10.sh modifies /usr/bin/python for non-RPi.
     ln() { :; }
     source $REPODIR/src/config/android-$L_VERSION.sh > /dev/null
@@ -61,5 +64,37 @@ assert "10 rpi: x86_64 fails" fails 10 rpi4 x86_64 ARCH
 assert "11 rpi: x86_64 fails" fails 11 rpi4 x86_64 ARCH
 assert "10 non-rpi: x86_64 is allowed" expect "x86_64" 10 "" x86_64 ARCH
 assert "14 rpi: x86_64 fails" fails 14 rpi4 x86_64 ARCH
+
+# --platform / --form-factor (form-factor-and-run-targets/01)
+# usage: with <platform> <form factor> <command...>
+with() {
+  local T_PLATFORM=$1 T_FORM_FACTOR=$2
+  shift 2
+  "$@"
+}
+
+assert "14 non-rpi: default is cuttlefish/tv on x86_64" \
+  expect "aosp_cf_x86_64_tv-trunk_staging-eng x86_64 cuttlefish tv" \
+  14 "" "" LUNCH_CHOICE ARCH ARG_PLATFORM ARG_FORM_FACTOR
+for L_C in "cuttlefish phone aosp_cf_x86_64_phone-trunk_staging-eng" \
+           "cuttlefish auto aosp_cf_x86_64_auto-trunk_staging-eng" \
+           "emulator phone sdk_phone64_x86_64-trunk_staging-eng" \
+           "emulator tv sdk_atv_x86-trunk_staging-eng" \
+           "emulator auto sdk_car_x86_64-trunk_staging-eng"; do
+  read -r L_P L_F L_L <<< "$L_C"
+  assert "14 $L_P/$L_F: lunch" with $L_P $L_F expect $L_L 14 "" "" LUNCH_CHOICE
+done
+assert "14 non-rpi: arm64 fails" fails 14 "" arm64 ARCH
+assert "14 rpi: phone fails" with "" phone fails 14 rpi4 "" ARCH
+rpi_auto_message() {
+  with "" auto run_config 14 rpi4 "" ARCH 2>&1 | \
+    grep -q "cuttlefish or emulator for auto"
+}
+assert "14 rpi: auto suggests cuttlefish or emulator" rpi_auto_message
+assert "14: rpi4 with ARG_RPI= fails" with rpi4 "" fails 14 "" "" ARCH
+assert "12: cuttlefish fails" with cuttlefish "" fails 12 "" x86_64 ARCH
+assert "12 non-rpi: default is emulator/phone" \
+  expect "emulator phone" 12 "" x86_64 ARG_PLATFORM ARG_FORM_FACTOR
+assert "unknown form factor fails" with "" wear fails 14 "" "" ARCH
 
 finish
