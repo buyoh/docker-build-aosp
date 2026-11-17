@@ -45,8 +45,8 @@ def build_parser() -> argparse.ArgumentParser:
                "patch-revert (revert patches), bash (run a shell instead)")
     parser.add_argument(
         "--config", metavar="FILE",
-        help="Read the parameters from the YAML file. Command line options "
-             "override it. See build-aosp.example.yaml.")
+        help="Read the parameters from the INI file. Command line options "
+             "override it. See build-aosp.example.ini.")
     parser.add_argument(
         "--print-config", action="store_true",
         help="Print the resolved configuration as JSON and exit. "
@@ -100,8 +100,8 @@ def parse_config(argv: List[str]) -> tuple:
     # --rpi is the same as --platform rpi4. Conflicting values are errors,
     # not "the last one wins" (also between the command line and the file).
     if values["rpi"] and values["platform"] not in (None, "rpi4"):
-        raise Exit(2, "--rpi (rpi: true) conflicts with --platform %s. "
-                   "Use --no-rpi to override rpi: true in the config file."
+        raise Exit(2, "--rpi (rpi = true) conflicts with --platform %s. "
+                   "Use --no-rpi to override rpi = true in the config file."
                    % values["platform"])
     if values["platform"] == "rpi4":
         values["rpi"] = True

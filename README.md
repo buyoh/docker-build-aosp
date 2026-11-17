@@ -21,9 +21,6 @@ Build AOSP on the rootless docker environment.
 - Docker (rootless)
 - Python 3.8 or later on the host. `build-aosp.sh` and `run-aosp.sh` are
   wrappers of `src/build_aosp.py` and `src/run_aosp.py`.
-- PyYAML on the host, only to use `--config` (`sudo apt install python3-yaml`
-  or `pip install pyyaml`). With `sudo ./build-aosp.sh`, `/usr/bin/python3` is
-  used, so PyYAML installed by pip for the user is not visible.
 
 ## Hands on
 
@@ -63,14 +60,14 @@ it exits, so the exit status is written at the end of the log
 
 ### Config file
 
-The parameters can be written in a YAML file instead of the command line.
-See [build-aosp.example.yaml](build-aosp.example.yaml) for the keys and their
+The parameters can be written in an INI file instead of the command line.
+See [build-aosp.example.ini](build-aosp.example.ini) for the keys and their
 descriptions. Command line options override the values in the file.
 
 ```sh
-$ cp build-aosp.example.yaml build-aosp.yaml   # and edit it
-$ ./build-aosp.sh --config build-aosp.yaml fetch patch build
-$ ./build-aosp.sh --config build-aosp.yaml --print-config   # show the resolved values
+$ cp build-aosp.example.ini build-aosp.ini   # and edit it
+$ ./build-aosp.sh --config build-aosp.ini fetch patch build
+$ ./build-aosp.sh --config build-aosp.ini --print-config   # show the resolved values
 ```
 
 Each run writes the resolved configuration to

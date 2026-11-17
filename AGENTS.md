@@ -19,5 +19,6 @@
 
 - `build-aosp.sh` と `run-aosp.sh` の処理は Python（`src/aosp_build/`）で実装している。コンテナ内のタスク（`src/start.sh` など）、`make-image.sh` などは bash。
 - 利用者が直接実行する可能性のあるスクリプトは、Python で実装する場合も bash のラッパーとし、拡張子を変えない。ラッパーは python3 を exec するだけとする。
-- `src/` の Python は Docker イメージの Python（3.8）でも動くようにする。`TEST_IN_IMAGE=1 bash tests/test-python.sh` または `uv run --python 3.8 --with pyyaml bash tests/test-python.sh` で確認できる。
-- パラメータを追加するときは `src/aosp_build/fields.py` の `FIELDS` と `build-aosp.example.yaml` を更新する。
+- `src/` の Python は Docker イメージの Python（3.8）でも動くようにする。`TEST_IN_IMAGE=1 bash tests/test-python.sh` または `uv run --python 3.8 bash tests/test-python.sh` で確認できる。
+- パラメータを追加するときは `src/aosp_build/fields.py` の `FIELDS` と `build-aosp.example.ini` を更新する。
+- 設定ファイルは INI（標準ライブラリの `configparser`）とし、外部ライブラリに依存しない。

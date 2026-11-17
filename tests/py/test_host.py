@@ -14,7 +14,7 @@ import tempfile
 import textwrap
 import unittest
 
-from helpers import REPODIR, has_yaml
+from helpers import REPODIR
 
 # The stub records each invocation as a JSON line.
 # "test -e" checks exit with $STUB_TEST_RC.
@@ -250,10 +250,9 @@ class TestErrors(HostTestCase):
                                          "build", cwd=self.dir),
                          "The workdir 'none' does not exist.")
 
-    @unittest.skipUnless(has_yaml(), "PyYAML is not installed")
     def test_missing_config_file(self):
-        self.assertError(self.rpi14("--config", self.dir + "/none.yaml",
-                                    "build"), "none.yaml")
+        self.assertError(self.rpi14("--config", self.dir + "/none.ini",
+                                    "build"), "none.ini")
 
     def test_unknown_user_with_adduser(self):
         self.assertEqual(self.rpi14("--adduser", "build",
@@ -320,7 +319,7 @@ class TestPlatformAndFormFactor(HostTestCase):
     def test_conflict(self):
         self.assertError(self.build14("--rpi", "--platform", "cuttlefish",
                                       "build"),
-                         "--rpi (rpi: true) conflicts with --platform "
+                         "--rpi (rpi = true) conflicts with --platform "
                          "cuttlefish")
 
     def test_unknown_values(self):
@@ -344,24 +343,23 @@ class TestPlatformAndFormFactor(HostTestCase):
             "cuttlefish", "--workdir", self.var, "--outdir", self.out,
             "build"), "Android 12 supports only emulator/phone")
 
-    @unittest.skipUnless(has_yaml(), "PyYAML is not installed")
     def test_config_file(self):
-        path = os.path.join(self.dir, "c.yaml")
+        path = os.path.join(self.dir, "c.ini")
         with open(path, "w") as f:
-            f.write("schema: 1\nandroid: 14\nplatform: emulator\n"
-                    "form_factor: phone\nworkdir: var\noutdir: out\n")
+            f.write("[build-aosp]\nschema = 1\nandroid = 14\n"
+                    "platform = emulator\nform_factor = phone\n"
+                    "workdir = var\noutdir = out\n")
         self.assertEqual(self.build_aosp("--config", path, "build"), 0,
                          self.stderr)
         envs = self.envs(self.run_call())
         self.assertIn("ARG_PLATFORM=emulator", envs)
         self.assertIn("ARG_FORM_FACTOR=phone", envs)
 
-    @unittest.skipUnless(has_yaml(), "PyYAML is not installed")
     def test_config_file_rpi_conflicts_with_cli_platform(self):
-        path = os.path.join(self.dir, "c.yaml")
+        path = os.path.join(self.dir, "c.ini")
         with open(path, "w") as f:
-            f.write("schema: 1\nandroid: 14\nrpi: true\n"
-                    "workdir: var\noutdir: out\n")
+            f.write("[build-aosp]\nschema = 1\nandroid = 14\nrpi = true\n"
+                    "workdir = var\noutdir = out\n")
         self.assertError(self.build_aosp("--config", path, "--platform",
                                          "emulator", "build"),
                          "conflicts with --platform emulator")
@@ -489,22 +487,22 @@ class TestResolvedConfig(HostTestCase):
         self.assertEqual(self.calls(), [])
 
 
-@unittest.skipUnless(has_yaml(), "PyYAML is not installed")
 class TestConfigFile(HostTestCase):
     def write_config(self, text):
-        path = os.path.join(self.dir, "c.yaml")
+        path = os.path.join(self.dir, "c.ini")
         with open(path, "w") as f:
             f.write(textwrap.dedent(text))
         return path
 
     def test_config_only(self):
         path = self.write_config("""
-            schema: 1
-            android: 14
-            rpi: true
-            workdir: var
-            outdir: out
-            gen: false
+            [build-aosp]
+            schema = 1
+            android = 14
+            rpi = true
+            workdir = var
+            outdir = out
+            gen = false
         """)
         # Relative paths are from the config file, not from the cwd.
         self.assertEqual(self.build_aosp("--config", path, "build", cwd="/"),
@@ -516,12 +514,13 @@ class TestConfigFile(HostTestCase):
 
     def test_cli_overrides(self):
         path = self.write_config("""
-            schema: 1
-            android: 12
-            rpi: true
-            workdir: var
-            outdir: out
-            gen: false
+            [build-aosp]
+            schema = 1
+            android = 12
+            rpi = true
+            workdir = var
+            outdir = out
+            gen = false
         """)
         self.assertEqual(self.build_aosp("--config", path, "--android", "14",
                                          "--gen", "build"), 0, self.stderr)
@@ -531,13 +530,14 @@ class TestConfigFile(HostTestCase):
 
     def test_cli_overrides_arch_and_mount_same(self):
         path = self.write_config("""
-            schema: 1
-            android: 11
-            rpi: true
-            arch: arm
-            workdir: var
-            outdir: out
-            mount_same: true
+            [build-aosp]
+            schema = 1
+            android = 11
+            rpi = true
+            arch = arm
+            workdir = var
+            outdir = out
+            mount_same = true
         """)
         self.assertEqual(self.build_aosp("--config", path, "--arch", "arm64",
                                          "--no-mount-same", "build"),
@@ -548,7 +548,7 @@ class TestConfigFile(HostTestCase):
         self.assertEqual(len([c for c in self.calls() if c[0] == "run"]), 1)
 
     def test_invalid_config(self):
-        path = self.write_config("schema: 1\ndaemon: true\n")
+        path = self.write_config("[build-aosp]\nschema = 1\ndaemon = true\n")
         self.assertEqual(self.build_aosp("--config", path, "build"), 2)
         self.assertIn("daemon", self.stderr)
         self.assertEqual(self.calls(), [])

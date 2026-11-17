@@ -78,20 +78,19 @@ class TestStatic(unittest.TestCase):
                             and f.attr in ("putenv", "unsetenv"),
                             "os.%s at line %d" % (f.attr, node.lineno))
 
-    def test_yaml_is_imported_lazily(self):
+    def test_no_external_libraries(self):
+        """Only the standard library is used (the config file is INI)."""
         for path in SOURCES:
             tree = ast.parse(read(path))
-            top = [n for n in tree.body
-                   if isinstance(n, (ast.Import, ast.ImportFrom))]
-            for n in top:
-                names = [a.name for a in n.names] if isinstance(n, ast.Import) \
-                    else [n.module or ""]
-                self.assertNotIn("yaml", names, rel(path))
-            uses = [n for n in ast.walk(tree) if isinstance(n, ast.Import)
-                    and any(a.name == "yaml" for a in n.names)]
-            if uses:
-                self.assertTrue(path.endswith("/aosp_build/config_file.py"),
-                                rel(path))
+            for n in ast.walk(tree):
+                if isinstance(n, ast.Import):
+                    names = [a.name for a in n.names]
+                elif isinstance(n, ast.ImportFrom) and n.level == 0:
+                    names = [n.module or ""]
+                else:
+                    continue
+                for name in names:
+                    self.assertNotEqual(name.split(".")[0], "yaml", rel(path))
 
     def test_wrappers(self):
         pattern = re.compile(

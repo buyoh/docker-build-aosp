@@ -6,7 +6,7 @@ import unittest
 from aosp_build.config_file import load
 from aosp_build.fields import DEFAULTS, FIELDS
 from aosp_build.host import build_parser
-from helpers import REPODIR, has_yaml
+from helpers import REPODIR
 
 
 class TestFields(unittest.TestCase):
@@ -29,9 +29,8 @@ class TestFields(unittest.TestCase):
         args = build_parser().parse_intermixed_args([])
         self.assertIsNone(args.gen)
 
-    @unittest.skipUnless(has_yaml(), "PyYAML is not installed")
     def test_example_describes_all_keys(self):
-        values = load(REPODIR + "/build-aosp.example.yaml")
+        values = load(REPODIR + "/build-aosp.example.ini")
         self.assertEqual(set(values), {f.key for f in FIELDS if f.in_file})
 
 

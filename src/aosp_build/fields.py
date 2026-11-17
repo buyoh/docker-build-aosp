@@ -2,7 +2,7 @@
 
 Each parameter is declared once in FIELDS. The command line options and the
 validation of the config file are made from it. When adding a parameter, also
-describe it in build-aosp.example.yaml (tests check that the keys match).
+describe it in build-aosp.example.ini (tests check that the keys match).
 """
 from __future__ import annotations
 
@@ -92,7 +92,7 @@ DEFAULTS = {
 }
 
 _TYPE_NAMES = {"str": "a string", "bool": "true or false",
-               "version": "an integer or a string", "path": "a string"}
+               "version": "a string", "path": "a string"}
 
 
 def normalize(field: Field, value: Any, base_dir: str) -> Any:
@@ -104,24 +104,20 @@ def normalize(field: Field, value: Any, base_dir: str) -> Any:
     if value is None:
         return None
     t = field.type
-    # An empty string is "not specified" too (e.g. --arch "" or arch: ""),
-    # as the shell scripts treated it. A path must not become base_dir.
-    # It is still a type error for a bool.
+    # An empty string is "not specified" too (e.g. --arch ""), as the shell
+    # scripts treated it. A path must not become base_dir. It is a type error
+    # for a bool. (config_file converts an empty value, "arch =", to None.)
     if value == "" and t != "bool":
         return None
     # bool is a subclass of int, so compare the types exactly.
     if t == "bool":
         ok = type(value) is bool
-    elif t == "version":
-        ok = type(value) in (int, str)
     else:
         ok = type(value) is str
     if not ok:
         raise ConfigError("%s: must be %s, not %r"
                           % (field.key, _TYPE_NAMES[t], value))
-    if t == "version":
-        value = str(value)
-    elif t == "path":
+    if t == "path":
         value = os.path.join(base_dir, os.path.expanduser(value))
     if field.choices and value not in field.choices:
         raise ConfigError("unsupported %s: %s" % (field.key, value))
