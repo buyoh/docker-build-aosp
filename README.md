@@ -30,55 +30,61 @@ First you need to create a docker image (for example, `env-aosp/focal`):
 $ ./setup-dockerimage.sh --apt-country jp
 ```
 
+Next, prepare the working and output directories.
+Copy the example configuration file, and edit it as needed.
+
+```sh
+$ mkdir -p ~/work/aosp/
+$ cp build-aosp.example.ini ~/work/aosp/build-aosp.ini
+$ cd ~/work/aosp/
+$ mkdir -p var out
+```
+
 Next, fetch the AOSP repository and build them.
 If you don't use rootless docker, add `--adduser` (deprecated).
+With `--daemon`, the container runs in background.
 
 ```sh
-$ mkdir -p var && mkdir -p out
-$ ./build-aosp.sh --rpi --android 11 --arch arm --mount-same \
-     --workdir ~/work/aosp/var --outdir ~/work/aosp/out \
+$ ./build-aosp.sh --config ~/work/aosp/build-aosp.ini \
      fetch patch build
 ```
 
-Android 14 for RPi 4 supports only arm64.
+### SD card image for Raspberry Pi
+
+Finally make image via outputs
 
 ```sh
-$ ./build-aosp.sh --rpi --android 14 --arch arm64 \
-     --workdir ~/work/aosp/var --outdir ~/work/aosp/out \
-     fetch patch build
+$ ./make-image.sh --outdir ~/work/aosp/out -t android-14-arm
+$ ls ~/work/aosp/out/*.img
 ```
 
-By default, `out` in the AOSP source directory is a symlink to
-`<workdir>/gen/out.<arch>`. If `out` is a real directory (e.g. it was built
-without this tool), the tasks stop. Add `--no-gen` to use the `out` directory
-as it is.
+The size of `/data` partition is 4096 MiB by default. Use `--data-size <MiB>`
+to change it.
 
-With `--daemon`, the container runs in background and the console output is
-written to `<outdir>/console-<timestamp>.log`. The container is removed after
-it exits, so the exit status is written at the end of the log
-(`exit status: <code>`).
+### Run AOSP on the host
 
-### Config file
-
-The parameters can be written in an INI file instead of the command line.
-See [build-aosp.example.ini](build-aosp.example.ini) for the keys and their
-descriptions. Command line options override the values in the file.
+If you built binaries for the emulator on the host, you can run them using `run-aosp.sh`.
 
 ```sh
-$ cp build-aosp.example.ini build-aosp.ini   # and edit it
-$ ./build-aosp.sh --config build-aosp.ini fetch patch build
-$ ./build-aosp.sh --config build-aosp.ini --print-config   # show the resolved values
+$ run-aosp.sh --outdir out -t android-14-x86_64-emulator
 ```
 
-Each run writes the resolved configuration to
-`<outdir>/build-config-<timestamp>.json`. The tasks in the container read it,
-and it is kept as a record of the run.
+## Limitation
+
+- AOSP 10, 11, 12 and 14 are supported.
+  - The form factors other than TV, cuttlefish and the emulator are only for
+    Android 14.
+  - Android 12 and 14 support is ongoing. See test.md for the tested status.
+- Enabling wifi causes crashes.
+  - RPi 4 has an ethernet adapter so we can use it.
+- Supporting arm / arm32
+
+## Info
 
 ### Form factors and platforms
 
 Android 14 can be built for TV, phone and automotive (`--form-factor`), and
 for Raspberry Pi 4, cuttlefish and the Android Emulator (`--platform`).
-`--rpi` is the same as `--platform rpi4`.
 
 | `--form-factor` | `rpi4` | `cuttlefish` (default of non-RPi) | `emulator` |
 |---|---|---|---|
@@ -92,8 +98,6 @@ $ ./build-aosp.sh --android 14 --platform cuttlefish --form-factor auto \
      fetch patch build
 ```
 
-- Raspberry Pi 4 supports only TV. For phone and automotive, use cuttlefish
-  or the emulator.
 - Use different `--workdir` for RPi and the others. The AOSP tags differ
   (RPi: android-14.0.0_r17, the others: android-14.0.0_r74).
 - `patch` is required for `--platform emulator --form-factor tv`. It adds the
@@ -110,15 +114,12 @@ $ ./build-aosp.sh --android 14 --platform cuttlefish --form-factor auto \
   before make. The emulator/tv outputs built before this change (6.6 kernel)
   do not boot; run `build` again. `run-aosp.sh` re-extracts the updated zip
   and recreates the AVD, so `--wipe` is not needed.
-- Android 14 for cuttlefish and the emulator supports only `--arch x86_64`
-  (default). Before this change, the default arch of them was arm64 and the
-  outputs were built in `<workdir>/gen/out.arm64`. To reuse it, rename it to
+- Before this change, the default arch of cuttlefish and the emulator of
+  Android 14 was arm64 and the outputs were built in
+  `<workdir>/gen/out.arm64`. To reuse it, rename it to
   `<workdir>/gen/out.x86_64` while no build is running.
-- Android 10-12 support only the default (RPi: `rpi4`/`tv`, the others:
-  `emulator`/`phone`).
-- The output directory gets a suffix for each non-default value, e.g.
-  `<outdir>/android-14-x86_64-emulator-auto`. Each one uses several GB.
-  Remove unused ones by yourself.
+- Each output directory (e.g. `<outdir>/android-14-x86_64-emulator-auto`) uses
+  several GB. Remove unused ones by yourself.
 - Switching the form factor or the platform in the same workdir rebuilds the
   differences (installclean of the product directory). The TV emulator is
   32-bit x86, so switching to it rebuilds more.
@@ -168,49 +169,7 @@ $ ./run-aosp.sh --outdir ~/work/aosp/out -t android-14-x86_64-emulator-phone
   `<sdk>/system-images/android-34/<tag>/` (`default`, `android-tv` or
   `android-automotive`) and create an AVD by the AVD Manager of Android Studio.
 
-### SD card image for Raspberry Pi
-
-Finally make image via outputs
-
-```sh
-$ ./make-image.sh --outdir ~/work/aosp/out -t android-11-arm
-$ ls ~/work/aosp/out/*.img
-```
-
-The size of `/data` partition is 4096 MiB by default. Use `--data-size <MiB>`
-to change it.
-
-## Directories
-
-- src/host
-  - the implementation that runs on the host (`build-aosp.sh`,
-    `run-aosp.sh`, ...). It is not passed to the container.
-- src/container
-  - the tasks that run in the container (fetch, patch, build, ...)
-- src/common
-  - the files used both on the host and in the container (patches, ...)
-- work
-  - working directory for AOSP
-- out
-  - build outputs
-- docker/base
-  - Dockerfile
-- tests
-  - tests for scripts (`bash tests/run-tests.sh`). The python tests are in
-    `tests/py`. `TEST_IN_IMAGE=1` also runs them with the python of the
-    docker image.
-
-## Limitation
-
-- AOSP 10, 11, 12 and 14 are supported.
-  - The form factors other than TV, cuttlefish and the emulator are only for
-    Android 14. Raspberry Pi supports only TV.
-  - Android 12 and 14 support is ongoing. See test.md for the tested status.
-- Enabling wifi causes crashes.
-  - RPi 4 has an ethernet adapter so we can use it.
-- Supporting arm / arm32
-
-## 
+## References
 
 Based on:
 - https://github.com/android-rpi/device_arpi_rpi4 (See [UPSTREAM.md](UPSTREAM.md) for the followed upstream and intentional deviations)
