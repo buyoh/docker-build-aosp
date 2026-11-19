@@ -7,9 +7,7 @@ source $(cd $(dirname ${BASH_SOURCE[0]}) && pwd)/preprocess.sh
 # ==============================================================================
 # Fetch
 
-# Pin the version of the repo tool itself.
-REPO_REV=v2.55.1
-
+# REPO_REV (the version of the repo tool itself) is in the resolved config.
 yes | repo init -u https://android.googlesource.com/platform/manifest \
                 -b $BRANCH_AOSP_PLATFORM --depth=1 --repo-rev=$REPO_REV
 

@@ -7,6 +7,9 @@ from typing import Any, Dict, Optional
 
 from aosp_build import ConfigError
 
+# The container reads the JSON (src/config_env.py). Increment SCHEMA (and
+# the one of config_env.py) when a key is renamed, removed or changes its
+# meaning. Adding a key does not need it.
 SCHEMA = 1
 
 

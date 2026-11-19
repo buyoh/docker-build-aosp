@@ -227,17 +227,12 @@ def run(argv: List[str]) -> int:
     if values["mount_same"]:
         check_mount_same(work_sourcedir)
 
-    options = [
-        "--env", "ARG_ANDROID_VERSION=%s" % values["android"],
-        "--env", "ARG_RPI=%s" % ("rpi4" if values["rpi"] else ""),
-        "--env", "ARG_ARCH=%s" % (values["arch"] or ""),
-        # As given. The config in the container applies the defaults.
-        "--env", "ARG_PLATFORM=%s" % (values["platform"] or ""),
-        "--env", "ARG_FORM_FACTOR=%s" % (values["form_factor"] or ""),
-        "--env", "ARG_NO_GEN=%s" % ("false" if use_gen else "true"),
-        "-w", "/tmp/%s/" % user,
-        "--env", "CONTAINER_SRCDIR=%s" % container_srcdir,
-    ]
+    # The container reads the resolved config (src/config_env.py), not
+    # environment variables. Not to change the environment of the build, the
+    # path is given to start.sh as an argument.
+    config_name = "build-config-%s.json" % timestamp
+    config_path = os.path.join(outdir, config_name)
+    options = ["-w", "/tmp/%s/" % user]
     if values["adduser"]:
         try:
             pw = pwd.getpwnam(user)
@@ -258,7 +253,8 @@ def run(argv: List[str]) -> int:
                    "-v", "%s:/mnt/kernel_gen" % work_kernel_gendir]
 
     command = ("set -o pipefail; cp -ar /opt/mnt_src /tmp/src && "
-               "bash /tmp/src/start.sh %s" % " ".join(tasks))
+               "bash /tmp/src/start.sh --resolved-config /mnt/out/%s %s"
+               % (config_name, " ".join(tasks)))
 
     if values["daemon"]:
         docker_options = ["-d"]
@@ -277,7 +273,6 @@ def run(argv: List[str]) -> int:
     # risk is limited on rootless docker, which is the expected environment.
     docker_options += ["--userns=host", "--privileged"]
 
-    config_path = os.path.join(outdir, "build-config-%s.json" % timestamp)
     try:
         write_config(config_path,
                      resolved_config(make_record(timestamp, with_image=True)))

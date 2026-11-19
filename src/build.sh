@@ -51,7 +51,7 @@ if [[ "$ARG_PLATFORM/$ARG_FORM_FACTOR" == emulator/tv ]]; then
     exit 1
   fi
   # The ramdisk modules of goldfish must fit the 6.1 kernel
-  # (TARGET_KERNEL_USE of src/config/android-14.sh,
+  # (TARGET_KERNEL_USE in build_env of src/aosp_build/versions/android_14.py,
   # docs-ai/done-task/emulator-tv-boot-loop). Check the mark of the patch,
   # not the change itself, not to accept a manual change or an upstream one.
   L_GOLDFISH_KERNEL=device/generic/goldfish/board/kernel/x86_64.mk
@@ -73,20 +73,15 @@ lunch $LUNCH_CHOICE
 PRODUCT_OUT_DIR=$ANDROID_PRODUCT_OUT
 HOST_OUT_DIR=$ANDROID_HOST_OUT
 if [[ -n $ARG_RPI ]]; then
-  if [[ $ANDROID_VERSION -eq 14 ]]; then
-    # The prebuilt ABI reference dump of libcrypto mismatches the build.
-    # https://discussions.unity.com/t/major-bug-in-android-14-breaks-building-aosp-for-debian-ubuntu-users/931277/3
-    # Skip ABI checks instead of regenerating the dumps in the source tree.
-    export SKIP_ABI_CHECKS=true
-  fi
-
+  # SKIP_ABI_CHECKS of Android 14 is exported by preprocess.sh (build_env of
+  # src/aosp_build/versions/android_14.py).
   if [[ $ANDROID_VERSION -eq 14 ]]; then
     m -j $(nproc) ramdisk systemimage vendorimage
   else
     make -j $(nproc) ramdisk systemimage vendorimage
   fi
 elif [[ $ANDROID_VERSION -ge 14 ]]; then
-  # Keep the same as GENERIC_14_TARGETS in src/aosp_build/versions.py.
+  # Keep the same as the make targets in src/aosp_build/versions/android_14.py.
   case "$ARG_PLATFORM" in
     cuttlefish)
       # hosttar: cvd-host_package.tar.gz is not built by default.

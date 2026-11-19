@@ -71,7 +71,8 @@ $ ./build-aosp.sh --config build-aosp.ini --print-config   # show the resolved v
 ```
 
 Each run writes the resolved configuration to
-`<outdir>/build-config-<timestamp>.json` as a record.
+`<outdir>/build-config-<timestamp>.json`. The tasks in the container read it,
+and it is kept as a record of the run.
 
 ### Form factors and platforms
 

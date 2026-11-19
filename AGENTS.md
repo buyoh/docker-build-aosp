@@ -22,3 +22,4 @@
 - `src/` の Python は Docker イメージの Python（3.8）でも動くようにする。`TEST_IN_IMAGE=1 bash tests/test-python.sh` または `uv run --python 3.8 bash tests/test-python.sh` で確認できる。
 - パラメータを追加するときは `src/aosp_build/fields.py` の `FIELDS` と `build-aosp.example.ini` を更新する。
 - 設定ファイルは INI（標準ライブラリの `configparser`）とし、外部ライブラリに依存しない。
+- バージョンごとのビルド設定（ブランチ、lunch、make ターゲット、環境変数など）は `src/aosp_build/versions/android_<version>.py` に、組み合わせ（platform / form factor）ごとの表として書く。`resolve()` にバージョンや組み合わせの分岐を足さない。コンテナのタスクは、ホストが書いた `build-config-*.json` を `src/config_env.py` 経由で読む。AOSP のビルドに渡す環境変数は `build_env`（`Kind.env` / `Variant.env`）に足せばコンテナでも export される。`ResolvedConfig` にキーを足すときは `src/config_env.py` の対応表も更新する。

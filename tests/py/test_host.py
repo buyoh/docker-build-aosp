@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import os
 import pwd
+import re
 import stat
 import subprocess
 import tempfile
@@ -91,6 +92,16 @@ class HostTestCase(unittest.TestCase):
         return sorted(p for p in os.listdir(self.out)
                       if p.startswith("build-config-"))
 
+    def passed_config(self, argv=None):
+        """The resolved config that start.sh in the container reads."""
+        argv = argv or self.run_call()
+        m = re.search(r"/tmp/src/start\.sh --resolved-config "
+                      r"/mnt/out/(build-config-[0-9-]+\.json) ", argv[-1])
+        self.assertIsNotNone(m, argv[-1])
+        self.assertIn(m.group(1), self.configs())
+        with open(os.path.join(self.out, m.group(1))) as f:
+            return json.load(f)
+
 
 class TestCompatibility(HostTestCase):
     def test_help(self):
@@ -100,7 +111,7 @@ class TestCompatibility(HostTestCase):
 
     def test_empty_arch_is_default(self):
         self.assertEqual(self.rpi14("--arch", "", "build"), 0, self.stderr)
-        self.assertIn("ARG_ARCH=", self.envs(self.run_call()))
+        self.assertEqual(self.passed_config()["arch"], "arm64")
 
     def test_unknown_user_without_adduser(self):
         self.assertEqual(self.rpi14("build", env={"USER": "no-such-user-x"}),
@@ -114,10 +125,14 @@ class TestCompatibility(HostTestCase):
         self.assertEqual(argv[:3], ["run", "--rm", "--pull=never"])
         self.assertEqual(argv[3:7], ["--init", "-it", "--userns=host",
                                      "--privileged"])
-        self.assertEqual(self.envs(argv), [
-            "ARG_ANDROID_VERSION=14", "ARG_RPI=rpi4", "ARG_ARCH=arm64",
-            "ARG_PLATFORM=", "ARG_FORM_FACTOR=",
-            "ARG_NO_GEN=false", "CONTAINER_SRCDIR=/mnt/aosp"])
+        # The values are passed by the resolved config, not by --env.
+        self.assertEqual(self.envs(argv), [])
+        config = self.passed_config(argv)
+        self.assertEqual(
+            [config[k] for k in ("android_version", "rpi", "arch", "platform",
+                                 "form_factor", "use_gen",
+                                 "container_srcdir")],
+            ["14", True, "arm64", "rpi4", "tv", True, "/mnt/aosp"])
         user = os.environ.get("USER") or pwd.getpwuid(os.getuid()).pw_name
         self.assertIn("/tmp/%s/" % user, argv)
         var = os.path.realpath(self.var)
@@ -129,19 +144,22 @@ class TestCompatibility(HostTestCase):
             var + "/gen:/mnt/gen",
             var + "/kernel_gen:/mnt/kernel_gen"])
         self.assertEqual(argv[-2], "env-aosp/focal:latest")
+        [config_name] = self.configs()
         self.assertEqual(argv[-1], "set -o pipefail; cp -ar /opt/mnt_src "
-                         "/tmp/src && bash /tmp/src/start.sh fetch patch build")
+                         "/tmp/src && bash /tmp/src/start.sh "
+                         "--resolved-config /mnt/out/%s fetch patch build"
+                         % config_name)
         for d in ("work", "kernel_work", "gen", "kernel_gen"):
             self.assertTrue(os.path.isdir(os.path.join(self.var, d)))
 
-    def test_arch_is_passed_as_given(self):
+    def test_arch_is_resolved(self):
         self.assertEqual(self.rpi14("build"), 0, self.stderr)
-        self.assertIn("ARG_ARCH=", self.envs(self.run_call()))
+        self.assertEqual(self.passed_config()["arch"], "arm64")
 
     def test_no_gen(self):
         self.assertEqual(self.rpi14("--no-gen", "build"), 0)
         argv = self.run_call()
-        self.assertIn("ARG_NO_GEN=true", self.envs(argv))
+        self.assertFalse(self.passed_config(argv)["use_gen"])
         self.assertFalse(any(m.endswith(":/mnt/gen")
                              for m in self.mounts(argv)))
 
@@ -149,14 +167,14 @@ class TestCompatibility(HostTestCase):
         self.assertEqual(self.build_aosp(
             "--android", "14", "--arch", "x86_64", "--workdir", self.var,
             "--outdir", self.out, "build"), 0, self.stderr)
-        self.assertIn("ARG_RPI=", self.envs(self.run_call()))
+        self.assertFalse(self.passed_config()["rpi"])
 
     def test_intermixed_options_and_tasks(self):
         self.assertEqual(self.build_aosp(
             "fetch", "--rpi", "--android", "14", "--workdir", self.var,
             "patch", "--outdir", self.out, "build"), 0, self.stderr)
-        self.assertTrue(self.run_call()[-1].endswith(
-            "start.sh fetch patch build"))
+        self.assertRegex(self.run_call()[-1],
+                         r"start\.sh --resolved-config \S+ fetch patch build$")
 
     def test_adduser(self):
         self.assertEqual(self.rpi14("--adduser", "build"), 0)
@@ -278,10 +296,11 @@ class TestPlatformAndFormFactor(HostTestCase):
         self.assertEqual(self.build14("--platform", "emulator",
                                       "--form-factor", "auto", "build"),
                          0, self.stderr)
-        envs = self.envs(self.run_call())
-        self.assertIn("ARG_PLATFORM=emulator", envs)
-        self.assertIn("ARG_FORM_FACTOR=auto", envs)
-        self.assertIn("ARG_RPI=", envs)
+        config = self.passed_config()
+        self.assertEqual(config["platform"], "emulator")
+        self.assertEqual(config["form_factor"], "auto")
+        self.assertFalse(config["rpi"])
+        self.assertEqual(config["build_env"].get("TARGET_KERNEL_USE"), None)
 
     def test_rpi_is_platform_rpi4(self):
         for args in (["--rpi"], ["--platform", "rpi4"],
@@ -290,7 +309,7 @@ class TestPlatformAndFormFactor(HostTestCase):
                 if os.path.exists(self.log):
                     os.unlink(self.log)
                 self.assertEqual(self.build14(*args, "build"), 0, self.stderr)
-                self.assertIn("ARG_RPI=rpi4", self.envs(self.run_call()))
+                self.assertTrue(self.passed_config()["rpi"])
 
     def test_resolved_config(self):
         self.assertEqual(self.build14("--platform", "emulator",
@@ -351,9 +370,9 @@ class TestPlatformAndFormFactor(HostTestCase):
                     "workdir = var\noutdir = out\n")
         self.assertEqual(self.build_aosp("--config", path, "build"), 0,
                          self.stderr)
-        envs = self.envs(self.run_call())
-        self.assertIn("ARG_PLATFORM=emulator", envs)
-        self.assertIn("ARG_FORM_FACTOR=phone", envs)
+        config = self.passed_config()
+        self.assertEqual(config["platform"], "emulator")
+        self.assertEqual(config["form_factor"], "phone")
 
     def test_config_file_rpi_conflicts_with_cli_platform(self):
         path = os.path.join(self.dir, "c.ini")
@@ -367,9 +386,9 @@ class TestPlatformAndFormFactor(HostTestCase):
         self.assertEqual(self.build_aosp("--config", path, "--no-rpi",
                                          "--platform", "emulator", "build"),
                          0, self.stderr)
-        envs = self.envs(self.run_call())
-        self.assertIn("ARG_RPI=", envs)
-        self.assertIn("ARG_PLATFORM=emulator", envs)
+        config = self.passed_config()
+        self.assertFalse(config["rpi"])
+        self.assertEqual(config["platform"], "emulator")
 
 
 class TestDaemon(HostTestCase):
@@ -439,7 +458,8 @@ class TestMountSame(HostTestCase):
                                     env={"STUB_TEST_RC": "1"}), 0)
         var = os.path.realpath(self.var)
         argv = self.run_call()
-        self.assertIn("CONTAINER_SRCDIR=%s/work" % var, self.envs(argv))
+        self.assertEqual(self.passed_config(argv)["container_srcdir"],
+                         "%s/work" % var)
         self.assertIn("%s/work:%s/work" % (var, var), self.mounts(argv))
 
     def test_already_used(self):
@@ -508,7 +528,7 @@ class TestConfigFile(HostTestCase):
         self.assertEqual(self.build_aosp("--config", path, "build", cwd="/"),
                          0, self.stderr)
         argv = self.run_call()
-        self.assertIn("ARG_NO_GEN=true", self.envs(argv))
+        self.assertFalse(self.passed_config(argv)["use_gen"])
         self.assertIn(os.path.realpath(self.var) + "/work:/mnt/aosp",
                       self.mounts(argv))
 
@@ -524,9 +544,9 @@ class TestConfigFile(HostTestCase):
         """)
         self.assertEqual(self.build_aosp("--config", path, "--android", "14",
                                          "--gen", "build"), 0, self.stderr)
-        envs = self.envs(self.run_call())
-        self.assertIn("ARG_ANDROID_VERSION=14", envs)
-        self.assertIn("ARG_NO_GEN=false", envs)
+        config = self.passed_config()
+        self.assertEqual(config["android_version"], "14")
+        self.assertTrue(config["use_gen"])
 
     def test_cli_overrides_arch_and_mount_same(self):
         path = self.write_config("""
@@ -543,8 +563,9 @@ class TestConfigFile(HostTestCase):
                                          "--no-mount-same", "build"),
                          0, self.stderr)
         argv = self.run_call()
-        self.assertIn("ARG_ARCH=arm64", self.envs(argv))
-        self.assertIn("CONTAINER_SRCDIR=/mnt/aosp", self.envs(argv))
+        config = self.passed_config(argv)
+        self.assertEqual(config["arch"], "arm64")
+        self.assertEqual(config["container_srcdir"], "/mnt/aosp")
         self.assertEqual(len([c for c in self.calls() if c[0] == "run"]), 1)
 
     def test_invalid_config(self):

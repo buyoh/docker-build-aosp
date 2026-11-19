@@ -1,11 +1,12 @@
-"""Tests for aosp_build.versions (ported from tests/test-config.sh)."""
+"""Tests for aosp_build.versions (src/aosp_build/versions/)."""
 from __future__ import annotations
 
 import re
 import unittest
 
 from aosp_build import ConfigError
-from aosp_build.versions import REPO_REV, VERSIONS, resolve
+from aosp_build.versions import (ARCHS, FORM_FACTORS, PLATFORMS, REPO_REV,
+                                 VERSIONS, resolve)
 from helpers import REPODIR
 
 
@@ -249,17 +250,74 @@ class TestPlatformAndFormFactor(unittest.TestCase):
 
 
 class TestStatic(unittest.TestCase):
-    def test_repo_rev_matches_fetch_sh(self):
+    def test_fetch_sh_uses_repo_rev_of_the_config(self):
+        # REPO_REV comes from the resolved config (src/config_env.py).
         with open(REPODIR + "/src/fetch.sh") as f:
-            m = re.search(r"^REPO_REV=(\S+)$", f.read(), re.M)
-        self.assertIsNotNone(m)
-        self.assertEqual(m.group(1), REPO_REV)
+            text = f.read()
+        self.assertNotRegex(text, r"(?m)^\s*REPO_REV=")
+        self.assertIn("--repo-rev=$REPO_REV", text)
+        self.assertRegex(REPO_REV, r"^v\d+\.\d+")
+
+    def test_tables_are_consistent(self):
+        """The tables in src/aosp_build/versions/android_*.py."""
+        for v, spec in VERSIONS.items():
+            self.assertEqual(spec.android, v)
+            self.assertEqual(sorted(spec.kinds), ["generic", "rpi"])
+            for name, kind in spec.kinds.items():
+                with self.subTest(version=v, kind=name):
+                    rpi = name == "rpi"
+                    self.assertIn(kind.default_arch, kind.archs)
+                    self.assertTrue(set(kind.archs) <= set(ARCHS))
+                    self.assertEqual(kind.arch_error is None,
+                                     set(kind.archs) == set(ARCHS))
+                    self.assertIn((kind.default_platform,
+                                   kind.default_form_factor), kind.variants)
+                    # The combinations that pass the rpi/platform check.
+                    allowed = {(p, f) for p in PLATFORMS
+                               for f in FORM_FACTORS
+                               if (p == "rpi4") == rpi}
+                    self.assertTrue(set(kind.variants) <= allowed)
+                    if kind.combination_error is None:
+                        self.assertEqual(set(kind.variants), allowed)
+                    for key, variant in kind.variants.items():
+                        for value in (variant.kernel_build,
+                                      variant.artifacts):
+                            if isinstance(value, dict):
+                                self.assertEqual(set(value),
+                                                 set(kind.archs), key)
+                        self.assertFalse(set(kind.env) & set(variant.env),
+                                         key)
+                        self.assertFalse(
+                            {"ARCH", "CROSS_COMPILE"}
+                            & (set(kind.env) | set(variant.env)), key)
+                        self.assertIsInstance(variant.make.targets, tuple)
+
+    def test_result_does_not_share_the_tables(self):
+        r = resolve("14", False, None, "emulator", "tv")
+        r["build_env"]["X"] = "1"
+        r["aosp_make"]["targets"].append("x")
+        r2 = resolve("14", False, None, "emulator", "tv")
+        self.assertNotIn("X", r2["build_env"])
+        self.assertEqual(r2["aosp_make"]["targets"], ["droid", "emu_img_zip"])
+        r = resolve("10", True, "arm")
+        r["kernel_env"]["X"] = "1"
+        self.assertNotIn("X", resolve("10", True, "arm")["kernel_env"])
+
+    def test_combination_is_checked_after_arch(self):
+        # 04: the same order for every version.
+        with self.assertRaisesRegex(ConfigError, "supports only arm and"):
+            resolve("10", True, "x86_64", None, "phone")
+        with self.assertRaisesRegex(ConfigError, "supports only rpi4/tv"):
+            resolve("10", True, "arm", None, "phone")
+        with self.assertRaisesRegex(ConfigError,
+                                    "supports only emulator/phone"):
+            resolve("12", False, "x86_64", None, "tv")
 
     def test_kernel_branches_are_defined_for_12_and_later(self):
-        for v, d in VERSIONS.items():
+        for v, spec in VERSIONS.items():
             if int(v) >= 12:
-                self.assertTrue(d["kernel_rpi_branch"])
-                self.assertTrue(d["kernel_dist_dir"])
+                self.assertTrue(spec.kernel_rpi_branch)
+                self.assertTrue(spec.kernel_dist_dir)
 
 
 if __name__ == "__main__":

@@ -70,14 +70,16 @@ EOT
 # usage: run_build <ARG_PLATFORM> <ARG_FORM_FACTOR>
 # T_VERSION / T_ARCH: the android version and the arch (default: 14, none)
 run_build() {
+  local L_OPTS=(--android ${T_VERSION:-14} --no-rpi --no-gen)
+  if [[ -n "${T_ARCH:-}" ]]; then L_OPTS+=(--arch $T_ARCH); fi
+  if [[ -n "$1" ]]; then L_OPTS+=(--platform $1); fi
+  if [[ -n "$2" ]]; then L_OPTS+=(--form-factor $2); fi
+  make_config $L_TMP/config.json $L_TMP/aosp "${L_OPTS[@]}" || return 1
   (
     export PATH=$L_TMP/stub:$PATH
-    export ARG_ANDROID_VERSION=${T_VERSION:-14} ARG_RPI= ARG_ARCH=${T_ARCH:-}
-    export ARG_NO_GEN=true
-    export ARG_PLATFORM=$1 ARG_FORM_FACTOR=$2
-    export CONTAINER_SRCDIR=$L_TMP/aosp TEST_MNT_OUT=$L_TMP/mnt_out
+    export TEST_MNT_OUT=$L_TMP/mnt_out
     cd /
-    bash $L_TMP/src/start.sh build
+    bash $L_TMP/src/start.sh --resolved-config $L_TMP/config.json build
   ) > $L_TMP/log 2>&1
 }
 
