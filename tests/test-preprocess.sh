@@ -1,32 +1,34 @@
 #!/bin/bash
 
-# Tests for src/preprocess.sh sourced via src/start.sh
+# Tests for src/container/preprocess.sh sourced via src/container/start.sh
 
 source $(cd $(dirname ${BASH_SOURCE[0]}) && pwd)/lib.sh
 
 L_TMP=$(mktemp -d)
 trap "rm -rf $L_TMP" EXIT
 
-# Copy src to emulate /tmp/src in the container, and add a dummy task.
-cp -r $REPODIR/src $L_TMP/src
-cat > $L_TMP/src/dummy.sh <<'EOT'
+# Copy src/container and src/common to emulate /tmp/src in the container
+# (src/host is not passed), and add a dummy task.
+mkdir -p $L_TMP/src
+cp -r $REPODIR/src/container $REPODIR/src/common $L_TMP/src/
+cat > $L_TMP/src/container/dummy.sh <<'EOT'
 set -eu
 source $(cd $(dirname ${BASH_SOURCE[0]}) && pwd)/preprocess.sh
 echo "SCRIPTDIR=$SCRIPTDIR"
 echo "PWD=$PWD"
 echo "OUTDIR=$OUTDIR"
 echo "LUNCH_CHOICE=$LUNCH_CHOICE"
-env > $(dirname $SCRIPTDIR)/env.txt
+env > $(dirname $(dirname $SCRIPTDIR))/env.txt
 EOT
 # The resolved config is read once by start.sh: a task that removes it does
 # not affect the next task.
-cat > $L_TMP/src/dummyrm.sh <<'EOT'
+cat > $L_TMP/src/container/dummyrm.sh <<'EOT'
 set -eu
 source $(cd $(dirname ${BASH_SOURCE[0]}) && pwd)/preprocess.sh
 rm -f "$L_BUILD_CONFIG"
 echo "REMOVED"
 EOT
-sed -i 's/build|patch|fetch|patch-revert)/build|patch|fetch|patch-revert|dummy|dummyrm)/' $L_TMP/src/start.sh
+sed -i 's/build|patch|fetch|patch-revert)/build|patch|fetch|patch-revert|dummy|dummyrm)/' $L_TMP/src/container/start.sh
 mkdir -p $L_TMP/aosp $L_TMP/stub
 
 # Stub git and mkdir of /mnt/out
@@ -52,12 +54,12 @@ run_start() {
     export L_TMP
     rm -f $L_TMP/env.txt $L_TMP/ln.txt
     cd /
-    bash $L_TMP/src/start.sh --resolved-config $L_TMP/config.json dummy
+    bash $L_TMP/src/container/start.sh --resolved-config $L_TMP/config.json dummy
   ) > $L_TMP/log 2>/dev/null
 }
 
 assert "start.sh runs a task with preprocess.sh" run_start
-assert "SCRIPTDIR is the src directory" grep -qx "SCRIPTDIR=$L_TMP/src" $L_TMP/log
+assert "SCRIPTDIR is the src/container directory" grep -qx "SCRIPTDIR=$L_TMP/src/container" $L_TMP/log
 assert "cwd is CONTAINER_SRCDIR" grep -qx "PWD=$L_TMP/aosp" $L_TMP/log
 assert "OUTDIR is set" grep -qx "OUTDIR=/mnt/out/android-14-arm64" $L_TMP/log
 assert "config is loaded" grep -qx "LUNCH_CHOICE=rpi4_tv-userdebug" $L_TMP/log
@@ -123,7 +125,7 @@ fails_start() {
   ! (
     export PATH=$L_TMP/stub:$PATH
     cd /
-    bash $L_TMP/src/start.sh "$@"
+    bash $L_TMP/src/container/start.sh "$@"
   ) > $L_TMP/log 2>&1
 }
 assert "no --resolved-config fails" fails_start dummy
@@ -148,7 +150,7 @@ read_once() {
     mkdir() { :; }
     export -f mkdir
     cd /
-    bash $L_TMP/src/start.sh --resolved-config $L_TMP/config.json dummyrm dummy
+    bash $L_TMP/src/container/start.sh --resolved-config $L_TMP/config.json dummyrm dummy
   ) > $L_TMP/log 2>&1
 }
 assert "the config is read once" read_once
@@ -166,7 +168,7 @@ bash_task() {
     cd /
     # The interactive shell (exec bash) reads the command from stdin.
     echo 'echo "IN_BASH ARCH=$ARCH ARG_PLATFORM=$ARG_PLATFORM"' \
-      | bash $L_TMP/src/start.sh --resolved-config $L_TMP/config.json bash
+      | bash $L_TMP/src/container/start.sh --resolved-config $L_TMP/config.json bash
   ) > $L_TMP/log 2>&1
 }
 assert "bash task runs" bash_task

@@ -1,8 +1,8 @@
 """build-aosp.sh: fetch and build AOSP on docker. Runs on the host.
 
-The tasks in the container are still the shell scripts (src/start.sh), so the
-values are passed by --env as before. The resolved configuration is written
-to <outdir>/build-config-<timestamp>.json as a record.
+The tasks in the container are the shell scripts (src/container/start.sh).
+The resolved configuration is written to <outdir>/build-config-<timestamp>.json
+and the container reads it. It is also kept as a record.
 """
 from __future__ import annotations
 
@@ -24,8 +24,9 @@ DIST_CODENAME = "focal"
 IMAGE_NAME = "env-aosp/%s:latest" % DIST_CODENAME
 TASKS = ("fetch", "patch", "build", "patch-revert", "bash")
 
-REPODIR = os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__))))
+# src/host/aosp_build/host.py -> the root of the repository.
+REPODIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))))
 
 
 class Exit(Exception):
@@ -227,9 +228,9 @@ def run(argv: List[str]) -> int:
     if values["mount_same"]:
         check_mount_same(work_sourcedir)
 
-    # The container reads the resolved config (src/config_env.py), not
-    # environment variables. Not to change the environment of the build, the
-    # path is given to start.sh as an argument.
+    # The container reads the resolved config (src/container/config_env.py),
+    # not environment variables. Not to change the environment of the build,
+    # the path is given to start.sh as an argument.
     config_name = "build-config-%s.json" % timestamp
     config_path = os.path.join(outdir, config_name)
     options = ["-w", "/tmp/%s/" % user]
@@ -242,8 +243,11 @@ def run(argv: List[str]) -> int:
                     "--env", "UID_=%d" % pw.pw_uid,
                     "--env", "GID_=%d" % pw.pw_gid]
 
+    srcdir = os.path.join(REPODIR, "src")
     mounts = [
-        "-v", "%s:/opt/mnt_src" % os.path.join(REPODIR, "src"),
+        # Only src/container and src/common. src/host is not passed.
+        "-v", "%s:/opt/mnt_src/container" % os.path.join(srcdir, "container"),
+        "-v", "%s:/opt/mnt_src/common" % os.path.join(srcdir, "common"),
         "-v", "%s:/mnt/kernel_work" % work_kernel_sourcedir,
         "-v", "%s:/mnt/out" % outdir,
         "-v", "%s:%s" % (work_sourcedir, container_srcdir),
@@ -253,7 +257,8 @@ def run(argv: List[str]) -> int:
                    "-v", "%s:/mnt/kernel_gen" % work_kernel_gendir]
 
     command = ("set -o pipefail; cp -ar /opt/mnt_src /tmp/src && "
-               "bash /tmp/src/start.sh --resolved-config /mnt/out/%s %s"
+               "bash /tmp/src/container/start.sh "
+               "--resolved-config /mnt/out/%s %s"
                % (config_name, " ".join(tasks)))
 
     if values["daemon"]:

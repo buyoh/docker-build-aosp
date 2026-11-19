@@ -16,7 +16,7 @@ export GIT_TERMINAL_PROMPT=0
 
 THIS_SCRIPT=$(readlink -f "$0")
 SCRIPTDIR=$(dirname "$THIS_SCRIPT")
-MANIFESTDIR=$SCRIPTDIR/manifests
+MANIFESTDIR=$SCRIPTDIR/src/common/manifests
 
 UPSTREAM_URL=https://github.com/android-rpi
 AOSP_MANIFEST_URL=https://android.googlesource.com/platform/manifest
@@ -52,7 +52,7 @@ if [[ ! "$ARG_ANDROID" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
-source "$SCRIPTDIR/config/upstream.sh"
+source "$SCRIPTDIR/src/host/upstream.sh"
 
 METAFILE=$MANIFESTDIR/android-$ARG_ANDROID.meta
 mapfile -t PINNED_FILES < <(compgen -G "$MANIFESTDIR/android-$ARG_ANDROID-*pinned.xml")

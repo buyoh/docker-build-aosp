@@ -4,7 +4,7 @@ Usage: python3 config_env.py <build-config.json>
 
 Runs in the container: keep it compatible with Python 3.8 and use only the
 standard library. Do not import aosp_build (host only). The host resolves the
-config (src/aosp_build/versions/) and writes the JSON. src/preprocess.sh
+config (src/host/aosp_build/versions/) and writes the JSON. preprocess.sh
 evaluates the output (docs-ai/done-task/build-config-single-source/02).
 """
 from __future__ import annotations

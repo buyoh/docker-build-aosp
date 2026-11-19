@@ -35,7 +35,7 @@ GENERIC = Kind(
     archs=ARCHS,
     default_arch="arm",
     arch_error=None,
-    # TODO: Retest this (src/preprocess.sh links python to python2).
+    # TODO: Retest this (src/container/preprocess.sh links python to python2).
     python2_as_python=True,
     combination_error=(
         "Android 10 supports only {default_platform}/{default_form_factor}"),

@@ -1,4 +1,4 @@
-"""The types of the version tables (src/aosp_build/versions/android_*.py).
+"""The types of the version tables (src/host/aosp_build/versions/android_*.py).
 
 The values are written in the version files as literals. resolve() in
 __init__.py looks them up without branching by the version or by the
@@ -15,7 +15,7 @@ PerArch = Union[str, Dict[str, str]]
 
 @dataclass(frozen=True)
 class Make:
-    """How src/build.sh builds AOSP."""
+    """How src/container/build.sh builds AOSP."""
     tool: str  # "m" or "make"
     parallel: bool  # run with -j $(nproc)
     targets: Tuple[str, ...]
@@ -26,9 +26,10 @@ class Variant:
     """One combination of (platform, form factor)."""
     lunch: str
     make: Make
-    # The kernel build of src/build.sh: "none", "build.sh" or "make-<arch>".
+    # The kernel build of src/container/build.sh: "none", "build.sh" or
+    # "make-<arch>".
     kernel_build: PerArch = "none"
-    # The artifacts that src/build.sh copies to the output directory.
+    # The artifacts that src/container/build.sh copies to the output directory.
     artifacts: PerArch = "none"
     # Pass ARCH / CROSS_COMPILE to the kernel build (kernel_env).
     kernel_env_toolchain: bool = False

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sys
 
-# Do not leave __pycache__ in src/ (src/ is copied into the container).
+# Do not leave __pycache__ in src/ (it may be root-owned under sudo).
 sys.dont_write_bytecode = True
 
 from aosp_build.run import main  # noqa: E402

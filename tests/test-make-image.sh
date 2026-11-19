@@ -295,6 +295,6 @@ assert "TERM during umount: umount once" [ "$(grep -c '^umount' $FAKE_LOG)" -eq 
 interrupt_during losetup TERM 143
 
 assert "sfdisk files are removed" \
-  bash -c "! ls $REPODIR/src/*.sfdisk 2> /dev/null | grep -q ."
+  bash -c "! find $REPODIR/src -name '*.sfdisk' | grep -q ."
 
 finish

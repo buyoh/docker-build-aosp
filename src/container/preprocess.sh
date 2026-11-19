@@ -10,7 +10,7 @@ git config --global user.name "user.name"
 
 SCRIPTDIR=$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)
 
-# The resolved config written by build-aosp.sh (src/aosp_build/versions/).
+# The resolved config written by build-aosp.sh (src/host/aosp_build/versions/).
 # config_env.py prints the assignments of the variables (ANDROID_VERSION,
 # ARCH, LUNCH_CHOICE, ...). start.sh runs it once and sets L_CONFIG_ENV.
 # bash.sh sets only L_BUILD_CONFIG (the path).

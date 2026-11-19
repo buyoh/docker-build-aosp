@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Tests for src/check-upstream.sh. git is replaced with a fake, so that the
+# Tests for check-upstream.sh. git is replaced with a fake, so that the
 # network is not needed. The script is copied to use fixture manifests.
 
 source $(cd $(dirname ${BASH_SOURCE[0]}) && pwd)/lib.sh
@@ -14,8 +14,8 @@ SHA_C=cccccccccccccccccccccccccccccccccccccccc
 SHA_D=dddddddddddddddddddddddddddddddddddddddd
 
 L_ROOT="$L_TMP/ro ot"
-mkdir -p $L_TMP/bin "$L_ROOT/src/config" "$L_ROOT/src/manifests"
-cp $REPODIR/src/check-upstream.sh "$L_ROOT/src/"
+mkdir -p $L_TMP/bin "$L_ROOT/src/host" "$L_ROOT/src/common/manifests"
+cp $REPODIR/check-upstream.sh "$L_ROOT/"
 export FAKE_REFS=$L_TMP/refs
 export FAKE_LOG=$L_TMP/git.log
 
@@ -37,7 +37,7 @@ chmod +x $L_TMP/bin/git
 
 GH=https://github.com/android-rpi
 
-cat > "$L_ROOT"/src/config/upstream.sh <<EOL
+cat > "$L_ROOT"/src/host/upstream.sh <<EOL
 UPSTREAM_WIKI_REV=$SHA_A
 EOL
 
@@ -67,10 +67,10 @@ EOL
 )
 
 write_fixtures() {
-  rm -f "$L_ROOT"/src/manifests/*
-  echo "$MAIN_MANIFEST" > "$L_ROOT"/src/manifests/android-14-pinned.xml
-  echo "$KERNEL_MANIFEST" > "$L_ROOT"/src/manifests/android-14-kernel-pinned.xml
-  cat > "$L_ROOT"/src/manifests/android-14.meta <<EOL
+  rm -f "$L_ROOT"/src/common/manifests/*
+  echo "$MAIN_MANIFEST" > "$L_ROOT"/src/common/manifests/android-14-pinned.xml
+  echo "$KERNEL_MANIFEST" > "$L_ROOT"/src/common/manifests/android-14-kernel-pinned.xml
+  cat > "$L_ROOT"/src/common/manifests/android-14.meta <<EOL
 LOCAL_MANIFESTS_REV=$SHA_D
 LOCAL_MANIFESTS_BRANCH=arpi14-pi4
 KERNEL_MANIFEST_REV=$SHA_D
@@ -88,7 +88,7 @@ EOL
 
 run() {
   : > $FAKE_LOG
-  PATH=$L_TMP/bin:$PATH bash "$L_ROOT"/src/check-upstream.sh "$@" > $L_TMP/log 2>&1
+  PATH=$L_TMP/bin:$PATH bash "$L_ROOT"/check-upstream.sh "$@" > $L_TMP/log 2>&1
 }
 
 write_fixtures
@@ -126,7 +126,7 @@ assert "branch removed: exit status" [ $? -eq 1 ]
 
 # Android 11 has no kernel_manifest.
 write_fixtures
-sed -i '/^KERNEL_/d' "$L_ROOT"/src/manifests/android-14.meta
+sed -i '/^KERNEL_/d' "$L_ROOT"/src/common/manifests/android-14.meta
 run --android 14
 assert "meta without kernel: exit status" [ $? -eq 0 ]
 assert "meta without kernel: not queried" bash -c "! grep -q kernel_manifest $FAKE_LOG"
@@ -141,27 +141,27 @@ FAKE_OFFLINE_FOR=device_arpi_rpi4 run --android 14
 assert "partial git failure wins over a difference" [ $? -eq 3 ]
 
 write_fixtures
-sed -i '/^LOCAL_MANIFESTS_BRANCH/d' "$L_ROOT"/src/manifests/android-14.meta
+sed -i '/^LOCAL_MANIFESTS_BRANCH/d' "$L_ROOT"/src/common/manifests/android-14.meta
 run --android 14
 assert "REV without BRANCH: exit status" [ $? -eq 2 ]
 
 write_fixtures
-sed -i 's/ upstream="[^"]*"//' "$L_ROOT"/src/manifests/android-14*-pinned.xml
+sed -i 's/ upstream="[^"]*"//' "$L_ROOT"/src/common/manifests/android-14*-pinned.xml
 run --android 14
 assert "no project to compare is not up to date" [ $? -eq 2 ]
 
 write_fixtures
-sed -i '/^KERNEL_MANIFEST_REV/d' "$L_ROOT"/src/manifests/android-14.meta
+sed -i '/^KERNEL_MANIFEST_REV/d' "$L_ROOT"/src/common/manifests/android-14.meta
 run --android 14
 assert "BRANCH without REV: exit status" [ $? -eq 2 ]
 
 write_fixtures
-sed -i '/^LOCAL_MANIFESTS_/d' "$L_ROOT"/src/manifests/android-14.meta
+sed -i '/^LOCAL_MANIFESTS_/d' "$L_ROOT"/src/common/manifests/android-14.meta
 run --android 14
 assert "local_manifests is required" [ $? -eq 2 ]
 
 write_fixtures
-sed -i 's/ upstream="[^"]*"//' "$L_ROOT"/src/manifests/android-14-kernel-pinned.xml
+sed -i 's/ upstream="[^"]*"//' "$L_ROOT"/src/common/manifests/android-14-kernel-pinned.xml
 run --android 14
 assert "a manifest without a project to compare is not up to date" [ $? -eq 2 ]
 
@@ -171,7 +171,7 @@ assert "no pinned manifest: exit status" [ $? -eq 2 ]
 assert "no pinned manifest: no network access" [ ! -s $FAKE_LOG ]
 
 write_fixtures
-rm "$L_ROOT"/src/manifests/android-14.meta
+rm "$L_ROOT"/src/common/manifests/android-14.meta
 run --android 14
 assert "no meta: exit status" [ $? -eq 2 ]
 
@@ -183,6 +183,6 @@ run --android abc
 assert "invalid --android is rejected" [ $? -eq 2 ]
 
 assert "upstream.sh records the wiki revision" \
-  grep -Eq '^UPSTREAM_WIKI_REV=[0-9a-f]{40}$' $REPODIR/src/config/upstream.sh
+  grep -Eq '^UPSTREAM_WIKI_REV=[0-9a-f]{40}$' $REPODIR/src/host/upstream.sh
 
 finish

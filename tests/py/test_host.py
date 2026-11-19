@@ -95,7 +95,7 @@ class HostTestCase(unittest.TestCase):
     def passed_config(self, argv=None):
         """The resolved config that start.sh in the container reads."""
         argv = argv or self.run_call()
-        m = re.search(r"/tmp/src/start\.sh --resolved-config "
+        m = re.search(r"/tmp/src/container/start\.sh --resolved-config "
                       r"/mnt/out/(build-config-[0-9-]+\.json) ", argv[-1])
         self.assertIsNotNone(m, argv[-1])
         self.assertIn(m.group(1), self.configs())
@@ -137,7 +137,8 @@ class TestCompatibility(HostTestCase):
         self.assertIn("/tmp/%s/" % user, argv)
         var = os.path.realpath(self.var)
         self.assertEqual(self.mounts(argv), [
-            REPODIR + "/src:/opt/mnt_src",
+            REPODIR + "/src/container:/opt/mnt_src/container",
+            REPODIR + "/src/common:/opt/mnt_src/common",
             var + "/kernel_work:/mnt/kernel_work",
             os.path.realpath(self.out) + ":/mnt/out",
             var + "/work:/mnt/aosp",
@@ -146,7 +147,7 @@ class TestCompatibility(HostTestCase):
         self.assertEqual(argv[-2], "env-aosp/focal:latest")
         [config_name] = self.configs()
         self.assertEqual(argv[-1], "set -o pipefail; cp -ar /opt/mnt_src "
-                         "/tmp/src && bash /tmp/src/start.sh "
+                         "/tmp/src && bash /tmp/src/container/start.sh "
                          "--resolved-config /mnt/out/%s fetch patch build"
                          % config_name)
         for d in ("work", "kernel_work", "gen", "kernel_gen"):
@@ -396,9 +397,9 @@ class TestDaemon(HostTestCase):
         """Run the command in the container with a fake start.sh."""
         fake = os.path.join(self.dir, "fake")
         subprocess.run(["rm", "-rf", fake])
-        os.makedirs(fake + "/mnt_src")
+        os.makedirs(fake + "/mnt_src/container")
         os.makedirs(fake + "/out")
-        with open(fake + "/mnt_src/start.sh", "w") as f:
+        with open(fake + "/mnt_src/container/start.sh", "w") as f:
             f.write("echo running\nexit %d\n" % rc)
         cmd = (self.run_call()[-1]
                .replace("/opt/mnt_src", fake + "/mnt_src")
@@ -439,8 +440,8 @@ class TestDaemon(HostTestCase):
     def test_foreground_failure_is_propagated(self):
         self.assertEqual(self.rpi14("build"), 0)
         fake = os.path.join(self.dir, "fake")
-        os.makedirs(fake + "/mnt_src")
-        with open(fake + "/mnt_src/start.sh", "w") as f:
+        os.makedirs(fake + "/mnt_src/container")
+        with open(fake + "/mnt_src/container/start.sh", "w") as f:
             f.write("exit 3\n")
         cmd = (self.run_call()[-1]
                .replace("/opt/mnt_src", fake + "/mnt_src")

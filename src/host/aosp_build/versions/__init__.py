@@ -6,8 +6,8 @@ does not branch by the version nor by the combination
 (docs-ai/done-task/build-config-single-source/04).
 
 The container uses the result through the resolved config
-(build-config-*.json, src/config_env.py). Add a value here, not in the
-container. build_env is exported for the AOSP build as it is.
+(build-config-*.json, src/container/config_env.py). Add a value here, not in
+the container. build_env is exported for the AOSP build as it is.
 """
 from __future__ import annotations
 
@@ -110,7 +110,7 @@ def resolve(android: str, rpi: bool, arch: Optional[str],
 
 def outdir_name(android: str, arch: str, platform: str, form_factor: str,
                 platform_default: str, form_factor_default: str) -> str:
-    """The subdirectory of outdir (OUTDIR of src/preprocess.sh).
+    """The subdirectory of outdir (OUTDIR of src/container/preprocess.sh).
 
     The default combination keeps the current name. Each axis that differs
     from the default adds a suffix.

@@ -10,9 +10,10 @@ set -eu
 #    if system/bt/hci/src/hci_layer.cc needs change, copy the file to 
 #    system/bt/hci/src/hci_layer.cc.patched and edit hci_layer_cc.patched.
 # 3. Change current directory to the root of the repository and 
-#    run bash /TOOLPATH/src/patches/make_patch.sh
+#    run bash /TOOLPATH/src/host/make_patch.sh
 
-BASEDIR=$(cd $(dirname $0); pwd)
+# The patches are written to src/common/patches (read by patcher.sh).
+BASEDIR=$(cd "$(dirname "$0")/../common/patches" && pwd)
 WORKDIR=$PWD
 
 PATCHSET=rpi

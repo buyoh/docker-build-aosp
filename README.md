@@ -13,14 +13,14 @@ Build AOSP on the rootless docker environment.
   - `<outdir>/android-<version>-<arch>.img` will be generated.
 - run-aosp.sh
   - Run the outputs for cuttlefish or the Android Emulator on the host.
-- src/check-upstream.sh
+- check-upstream.sh
   - Check if the upstream has been updated. See [UPSTREAM.md](UPSTREAM.md).
 
 ## Requirements
 
 - Docker (rootless)
 - Python 3.8 or later on the host. `build-aosp.sh` and `run-aosp.sh` are
-  wrappers of `src/build_aosp.py` and `src/run_aosp.py`.
+  wrappers of `src/host/build_aosp.py` and `src/host/run_aosp.py`.
 
 ## Hands on
 
@@ -182,8 +182,13 @@ to change it.
 
 ## Directories
 
-- src
-  - scripts and patches
+- src/host
+  - the implementation that runs on the host (`build-aosp.sh`,
+    `run-aosp.sh`, ...). It is not passed to the container.
+- src/container
+  - the tasks that run in the container (fetch, patch, build, ...)
+- src/common
+  - the files used both on the host and in the container (patches, ...)
 - work
   - working directory for AOSP
 - out

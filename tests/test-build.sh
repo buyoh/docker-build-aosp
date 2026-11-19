@@ -1,14 +1,16 @@
 #!/bin/bash
 
-# Tests for the non-RPi part of src/build.sh (make targets, copying outputs and
-# build-info.json) with a fake AOSP tree. lunch and m are stubs.
+# Tests for the non-RPi part of src/container/build.sh (make targets, copying
+# outputs and build-info.json) with a fake AOSP tree. lunch and m are stubs.
 
 source $(cd $(dirname ${BASH_SOURCE[0]}) && pwd)/lib.sh
 
 L_TMP=$(mktemp -d)
 trap "rm -rf $L_TMP" EXIT
 
-cp -r $REPODIR/src $L_TMP/src
+# Emulate /tmp/src in the container (src/host is not passed).
+mkdir -p $L_TMP/src
+cp -r $REPODIR/src/container $REPODIR/src/common $L_TMP/src/
 mkdir -p $L_TMP/stub
 cat > $L_TMP/stub/git <<'EOT'
 #!/bin/sh
@@ -79,7 +81,7 @@ run_build() {
     export PATH=$L_TMP/stub:$PATH
     export TEST_MNT_OUT=$L_TMP/mnt_out
     cd /
-    bash $L_TMP/src/start.sh --resolved-config $L_TMP/config.json build
+    bash $L_TMP/src/container/start.sh --resolved-config $L_TMP/config.json build
   ) > $L_TMP/log 2>&1
 }
 

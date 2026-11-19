@@ -5,7 +5,7 @@ to avoid a circular import.
 """
 from __future__ import annotations
 
-# The version of the repo tool itself (src/fetch.sh).
+# The version of the repo tool itself (src/container/fetch.sh).
 REPO_REV = "v2.55.1"
 
 ARCHS = ("arm", "arm64", "x86_64")

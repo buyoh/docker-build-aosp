@@ -1,4 +1,4 @@
-"""Tests for aosp_build.versions (src/aosp_build/versions/)."""
+"""Tests for aosp_build.versions (src/host/aosp_build/versions/)."""
 from __future__ import annotations
 
 import re
@@ -57,7 +57,7 @@ class TestConfig(unittest.TestCase):
 
 
 class TestBuildKinds(unittest.TestCase):
-    """The version dependent branches of src/build.sh."""
+    """The version dependent branches of src/container/build.sh."""
 
     def test_rpi_14(self):
         r = resolve("14", True, None)
@@ -251,15 +251,15 @@ class TestPlatformAndFormFactor(unittest.TestCase):
 
 class TestStatic(unittest.TestCase):
     def test_fetch_sh_uses_repo_rev_of_the_config(self):
-        # REPO_REV comes from the resolved config (src/config_env.py).
-        with open(REPODIR + "/src/fetch.sh") as f:
+        # REPO_REV comes from the resolved config (src/container/config_env.py).
+        with open(REPODIR + "/src/container/fetch.sh") as f:
             text = f.read()
         self.assertNotRegex(text, r"(?m)^\s*REPO_REV=")
         self.assertIn("--repo-rev=$REPO_REV", text)
         self.assertRegex(REPO_REV, r"^v\d+\.\d+")
 
     def test_tables_are_consistent(self):
-        """The tables in src/aosp_build/versions/android_*.py."""
+        """The tables in src/host/aosp_build/versions/android_*.py."""
         for v, spec in VERSIONS.items():
             self.assertEqual(spec.android, v)
             self.assertEqual(sorted(spec.kinds), ["generic", "rpi"])

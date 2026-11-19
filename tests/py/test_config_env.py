@@ -1,4 +1,5 @@
-"""Tests for src/config_env.py (the resolved config in the container).
+"""Tests for src/container/config_env.py (the resolved config in the
+container).
 
 config_env.py runs with sys.executable, which is the python of the docker
 image (3.8) with TEST_IN_IMAGE=1 bash tests/test-python.sh.
@@ -20,7 +21,7 @@ from aosp_build.versions import (ARCHS, FORM_FACTORS, PLATFORMS, VERSIONS,
                                  resolve)
 from helpers import REPODIR
 
-SCRIPT = os.path.join(REPODIR, "src", "config_env.py")
+SCRIPT = os.path.join(REPODIR, "src", "container", "config_env.py")
 
 
 def load_module():

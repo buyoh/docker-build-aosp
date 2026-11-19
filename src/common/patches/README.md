@@ -12,7 +12,8 @@ https://github.com/android-rpi/device_arpi_rpi4/wiki/Android-10-:-patch-framewor
   partially applied). Add a new file instead of new hunks to an existing file
   when old workdirs have the existing file applied: they get the new file by
   running `patch` again.
-- `make_patch.sh` writes only the top-level file (`android-<version>*.patch`).
+- `make_patch.sh` (`src/host/make_patch.sh`, run on the host) writes only the
+  top-level file (`android-<version>*.patch`).
   Make a patch file in a subdirectory by hand, e.g.
   `diff -U 5 --label ./board/kernel/x86_64.mk --label ./board/kernel/x86_64.mk <orig> <new>`.
   When remaking the top-level file by `make_patch.sh`, do not leave

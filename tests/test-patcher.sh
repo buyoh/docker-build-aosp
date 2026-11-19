@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Tests for src/patches/patcher.sh
+# Tests for src/common/patches/patcher.sh
 
 source $(cd $(dirname ${BASH_SOURCE[0]}) && pwd)/lib.sh
 
@@ -9,7 +9,7 @@ trap "rm -rf $L_TMP" EXIT
 
 # Fixture: patcher.sh finds patches next to itself.
 mkdir -p $L_TMP/patches
-cp $REPODIR/src/patches/patcher.sh $L_TMP/patches/
+cp $REPODIR/src/common/patches/patcher.sh $L_TMP/patches/
 PATCHER=$L_TMP/patches/patcher.sh
 
 setup_tree() {
@@ -218,5 +218,17 @@ top_already_applied() {
 }
 assert "subdir: an old tree is migrated by another run" top_already_applied
 assert "subdir: both patches are applied after the migration" both_97_applied
+
+# make_patch.sh (src/host) writes the patch to src/common/patches.
+mkdir -p $L_TMP/mp/src/host $L_TMP/mp/src/common/patches $L_TMP/mp/work
+cp $REPODIR/src/host/make_patch.sh $L_TMP/mp/src/host/
+printf 'a\nb\n' > $L_TMP/mp/work/x.txt
+printf 'a\nc\n' > $L_TMP/mp/work/x.txt.patched
+make_patch_writes_common() {
+  (cd $L_TMP/mp/work && bash $L_TMP/mp/src/host/make_patch.sh --android 99) > /dev/null &&
+    grep -qx '+++ ./x.txt' $L_TMP/mp/src/common/patches/android-99.patch &&
+    [ "$(ls $L_TMP/mp/src/host)" == make_patch.sh ]
+}
+assert "make_patch.sh writes the patch to src/common/patches" make_patch_writes_common
 
 finish

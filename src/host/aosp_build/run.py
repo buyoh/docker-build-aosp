@@ -267,7 +267,7 @@ def cf_env(rundir: str) -> Dict[str, str]:
 
 def stop(args, targetdir: str) -> int:
     """--stop. It does not need build-info.json nor the outputs, which a
-    running build may have removed (src/build.sh)."""
+    running build may have removed (src/container/build.sh)."""
     if args.target == "emulator":
         raise Exit(2, EMULATOR_STOP_ERROR)
     rundir = os.path.join(targetdir, "run-cf-host")

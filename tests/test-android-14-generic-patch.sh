@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Tests for the generic patches (src/patches/android-14-generic.patch and
-# src/patches/device/generic/goldfish/android-14-generic.patch) against the
-# real AOSP tree for non-RPi (android-14.0.0_r74). This test is skipped if
+# Tests for the generic patches (src/common/patches/android-14-generic.patch
+# and src/common/patches/device/generic/goldfish/android-14-generic.patch)
+# against the real AOSP tree for non-RPi (android-14.0.0_r74). This test is skipped if
 # AOSP_WORK_GENERIC is not set. It does not modify the tree.
 
 source $(cd $(dirname ${BASH_SOURCE[0]}) && pwd)/lib.sh
@@ -14,7 +14,7 @@ fi
 
 # The generic patch files. A patch file in a subdirectory is applied in that
 # directory (patcher.sh).
-PATCHDIR=$REPODIR/src/patches
+PATCHDIR=$REPODIR/src/common/patches
 TOP_PATCH=android-14-generic.patch
 GOLDFISH_PATCH=device/generic/goldfish/android-14-generic.patch
 L_TMP=$(mktemp -d)
@@ -56,7 +56,7 @@ top_patch_applies_to_head() {
 assert "the patch applies to HEAD of device/google/atv" top_patch_applies_to_head
 
 # The goldfish patch applies to the pristine file, keeps only the existing
-# ramdisk modules and has the mark that src/build.sh checks.
+# ramdisk modules and has the mark that src/container/build.sh checks.
 goldfish_patch_applies_to_head() {
   local L_F=$L_TMP/pristine/device/generic/goldfish/board/kernel/x86_64.mk
   apply_to_head device/generic/goldfish board/kernel/x86_64.mk \

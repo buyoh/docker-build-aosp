@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Tests for src/patches/android-14.patch against the real AOSP tree.
+# Tests for src/common/patches/android-14.patch against the real AOSP tree.
 # This test is skipped if AOSP_WORK is not set. It does not modify the tree.
 
 source $(cd $(dirname ${BASH_SOURCE[0]}) && pwd)/lib.sh
@@ -10,7 +10,7 @@ if [[ -z "${AOSP_WORK:-}" ]]; then
   exit 0
 fi
 
-PATCHFILE=$REPODIR/src/patches/android-14.patch
+PATCHFILE=$REPODIR/src/common/patches/android-14.patch
 L_TMP=$(mktemp -d)
 trap "rm -rf $L_TMP" EXIT
 
