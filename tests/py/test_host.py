@@ -15,6 +15,7 @@ import tempfile
 import textwrap
 import unittest
 
+from aosp_build import host
 from helpers import REPODIR
 
 # The stub records each invocation as a JSON line.
@@ -408,7 +409,7 @@ class TestDaemon(HostTestCase):
         env = {k: v for k, v in os.environ.items()
                if k not in ("USER_", "UID_", "GID_")}
         # Run it through the entrypoint of the docker image.
-        r = subprocess.run(["sh", REPODIR + "/base/entrypoint.sh", cmd],
+        r = subprocess.run(["sh", REPODIR + "/docker/base/entrypoint.sh", cmd],
                            env=env, stdout=subprocess.DEVNULL,
                            stderr=subprocess.DEVNULL)
         logs = [p for p in os.listdir(fake + "/out")
@@ -448,7 +449,7 @@ class TestDaemon(HostTestCase):
                .replace("/tmp/src", fake + "/src"))
         env = {k: v for k, v in os.environ.items()
                if k not in ("USER_", "UID_", "GID_")}
-        r = subprocess.run(["sh", REPODIR + "/base/entrypoint.sh", cmd],
+        r = subprocess.run(["sh", REPODIR + "/docker/base/entrypoint.sh", cmd],
                            env=env, stdout=subprocess.DEVNULL)
         self.assertEqual(r.returncode, 3)
 
@@ -488,6 +489,12 @@ class TestResolvedConfig(HostTestCase):
         self.assertEqual(data["record"]["image_id"], "sha256:fake")
         self.assertRegex(data["record"]["tool_revision"], r"^[0-9a-f]{40,}$")
         self.assertIn(data["record"]["tool_dirty"], (True, False))
+
+    def test_tool_paths_exist(self):
+        # git status prints nothing for a missing path, so a renamed path
+        # would make tool_dirty silently False.
+        for path in host.TOOL_PATHS:
+            self.assertTrue(os.path.exists(os.path.join(REPODIR, path)), path)
 
     def test_print_config(self):
         self.assertEqual(self.rpi14("--print-config"), 0, self.stderr)

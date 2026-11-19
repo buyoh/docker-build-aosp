@@ -27,6 +27,8 @@ TASKS = ("fetch", "patch", "build", "patch-revert", "bash")
 # src/host/aosp_build/host.py -> the root of the repository.
 REPODIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))))
+# The files of the tool whose changes make the record dirty.
+TOOL_PATHS = ("build-aosp.sh", "src", "docker")
 
 
 class Exit(Exception):
@@ -154,7 +156,7 @@ def make_record(timestamp: str, with_image: bool) -> dict:
     # root-owned under sudo).
     # Only the files of the tool, including untracked ones (new scripts).
     status = _output(["git", "--no-optional-locks", "-C", REPODIR, "status",
-                      "--porcelain", "--", "build-aosp.sh", "src", "base"])
+                      "--porcelain", "--", *TOOL_PATHS])
     image_id = None
     if with_image:
         image_id = _output(["docker", "image", "inspect", "-f", "{{.Id}}",

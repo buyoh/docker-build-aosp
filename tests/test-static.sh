@@ -7,6 +7,10 @@ source $(cd $(dirname ${BASH_SOURCE[0]}) && pwd)/lib.sh
 for L_FILE in $REPODIR/*.sh $(find $REPODIR/src -name '*.sh' | sort); do
   assert "syntax: ${L_FILE#$REPODIR/}" bash -n $L_FILE
 done
+# Run by sh (dash) in the image.
+for L_FILE in $REPODIR/docker/base/*.sh; do
+  assert "syntax: ${L_FILE#$REPODIR/}" sh -n $L_FILE
+done
 
 # The layout of src/ by where the files run (AGENTS.md).
 # Every tracked file is in src/host, src/container or src/common.
@@ -51,13 +55,15 @@ for L_TASK in patch patch-revert; do
     grep -q 'patcher.sh .*--set generic' $REPODIR/src/container/$L_TASK.sh
 done
 assert "Dockerfile pins the base image digest" \
-  grep -q '^FROM .*@\$UBUNTU_DIGEST$' $REPODIR/base/Dockerfile
+  grep -q '^FROM .*@\$UBUNTU_DIGEST$' $REPODIR/docker/base/Dockerfile
 assert "Dockerfile pins pip packages" \
-  bash -c "grep 'pip3 install' $REPODIR/base/Dockerfile | grep -q 'meson==.*ninja=='"
+  bash -c "grep 'pip3 install' $REPODIR/docker/base/Dockerfile | grep -q 'meson==.*ninja=='"
 # build-aosp.sh: see tests/py/test_host.py (--pull=never).
 
 assert "clean-after-apt.sh does not use brace expansion (run by dash)" \
-  bash -c "! grep -q '{.*,.*}' $REPODIR/base/clean-after-apt.sh"
+  bash -c "! grep -q '{.*,.*}' $REPODIR/docker/base/clean-after-apt.sh"
+assert "setup-dockerimage.sh builds the existing context docker/base" \
+  bash -c "grep -q '^  \./docker/base$' $REPODIR/setup-dockerimage.sh && test -f $REPODIR/docker/base/Dockerfile"
 
 # A hunk without a file header is silently dropped by GNU patch.
 has_header_before_first_hunk() {

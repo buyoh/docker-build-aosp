@@ -41,5 +41,5 @@ cd $(dirname $0)
 docker build -t env-aosp/$ARG_DIST_CODENAME:latest \
   --build-arg DIST_CODENAME=$ARG_DIST_CODENAME \
   --build-arg UBUNTU_APT_URL=$ARG_UBUNTU_APT_URL \
-  ./base
+  ./docker/base
 

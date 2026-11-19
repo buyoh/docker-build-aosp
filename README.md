@@ -193,7 +193,7 @@ to change it.
   - working directory for AOSP
 - out
   - build outputs
-- base
+- docker/base
   - Dockerfile
 - tests
   - tests for scripts (`bash tests/run-tests.sh`). The python tests are in
