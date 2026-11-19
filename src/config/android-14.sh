@@ -58,7 +58,15 @@ case "$ARG_PLATFORM/$ARG_FORM_FACTOR" in
   cuttlefish/auto)  LUNCH_CHOICE=aosp_cf_x86_64_auto-trunk_staging-eng ;;
   emulator/phone)   LUNCH_CHOICE=sdk_phone64_x86_64-trunk_staging-eng ;;
   # r74 has no x86_64 TV product for the emulator.
-  emulator/tv)      LUNCH_CHOICE=sdk_atv_x86-trunk_staging-eng ;;
+  emulator/tv)
+    LUNCH_CHOICE=sdk_atv_x86-trunk_staging-eng
+    # sdk_atv_x86 is 32-bit. NetBpfLoad (tethering APEX) rejects 32-bit
+    # userspace on 6.2+ kernels and init reboots (reboot,bpfloader-failed).
+    # Use the 6.1 GKI instead of the default 6.6 of goldfish
+    # (docs-ai/done-task/emulator-tv-boot-loop). Keep it the same as
+    # EMULATOR_TV_KERNEL of src/aosp_build/versions.py.
+    export TARGET_KERNEL_USE=6.1
+    ;;
   emulator/auto)    LUNCH_CHOICE=sdk_car_x86_64-trunk_staging-eng ;;
   *)
     # Only rpi4/phone and rpi4/auto reach here.

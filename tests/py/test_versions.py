@@ -131,6 +131,26 @@ class TestPlatformAndFormFactor(unittest.TestCase):
                 self.assertEqual(r["arch"], "x86_64")
                 self.assertEqual(r["artifacts"], platform)
 
+    def test_14_emulator_tv_kernel(self):
+        """Only the 32-bit emulator TV uses the 6.1 kernel
+        (emulator-tv-boot-loop)."""
+        r = resolve("14", False, None, "emulator", "tv")
+        self.assertEqual(r["build_env"]["TARGET_KERNEL_USE"], "6.1")
+        self.assertEqual(r["build_env"],
+                         {"ARCH": "x86_64", "ALLOW_NINJA_ENV": "1",
+                          "TARGET_KERNEL_USE": "6.1"})
+        others = [("14", False, "emulator", "phone"),
+                  ("14", False, "emulator", "auto"),
+                  ("14", False, "cuttlefish", "tv"),
+                  ("14", True, "rpi4", "tv")]
+        others += [(v, rpi, None, None) for v in ("10", "11", "12")
+                   for rpi in (True, False)]
+        for version, rpi, platform, ff in others:
+            with self.subTest(version=version, rpi=rpi, platform=platform,
+                              form_factor=ff):
+                r = resolve(version, rpi, None, platform, ff)
+                self.assertNotIn("TARGET_KERNEL_USE", r["build_env"])
+
     def test_14_make_targets(self):
         self.assertEqual(
             resolve("14", False, None, "emulator")["aosp_make"]["targets"],

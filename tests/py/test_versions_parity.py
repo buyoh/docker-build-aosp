@@ -15,7 +15,8 @@ from helpers import REPODIR
 
 VARS = ("ANDROID_VERSION", "BRANCH_AOSP_PLATFORM", "BRANCH_ANDROID_RPI",
         "BRANCH_KERNEL_RPI", "KERNEL_DIST_DIR", "ARCH", "CROSS_COMPILE",
-        "ALLOW_NINJA_ENV", "LUNCH_CHOICE", "ARG_PLATFORM", "ARG_FORM_FACTOR")
+        "ALLOW_NINJA_ENV", "LUNCH_CHOICE", "ARG_PLATFORM", "ARG_FORM_FACTOR",
+        "TARGET_KERNEL_USE")
 UNSET = "<unset>"
 
 SCRIPT = r'''
@@ -85,6 +86,7 @@ def expected_vars(r: dict) -> dict:
         "LUNCH_CHOICE": r["lunch_choice"],
         "ARG_PLATFORM": r["platform"],
         "ARG_FORM_FACTOR": r["form_factor"],
+        "TARGET_KERNEL_USE": env.get("TARGET_KERNEL_USE", UNSET),
     }
 
 

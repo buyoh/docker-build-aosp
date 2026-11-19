@@ -16,7 +16,13 @@ exit 0
 EOT
 chmod +x $L_TMP/stub/git
 
-# usage: setup_tree [with-launcher]
+# usage: setup_tree [with-launcher|launcher-only|no-kernel-mk]
+#   (none)        : no generic patch
+#   with-launcher : the generic patch is applied (sdk_atv_x86.mk and the
+#                   goldfish x86_64.mk)
+#   launcher-only : only sdk_atv_x86.mk is patched (a workdir patched by an
+#                   older version of the tool)
+#   no-kernel-mk  : sdk_atv_x86.mk is patched, but x86_64.mk does not exist
 setup_tree() {
   rm -rf $L_TMP/aosp $L_TMP/mnt_out $L_TMP/m.log
   mkdir -p $L_TMP/aosp/build $L_TMP/mnt_out
@@ -28,6 +34,8 @@ lunch() {
   export ANDROID_PRODUCT_OUT=$L_PRODUCT
   export ANDROID_HOST_OUT=$L_HOST
   echo "lunch \$*" >> $L_TMP/m.log
+  # Read it in a child process: Kati sees only exported variables.
+  bash -c 'echo "TARGET_KERNEL_USE=\${TARGET_KERNEL_USE:-}"' >> $L_TMP/m.log
 }
 m() {
   echo "m \$*" >> $L_TMP/m.log
@@ -42,10 +50,21 @@ EOT
   mkdir -p $L_TMP/aosp/device/google/atv/products
   echo "PRODUCT_NAME := sdk_atv_x86" \
     > $L_TMP/aosp/device/google/atv/products/sdk_atv_x86.mk
-  if [[ "${1:-}" == with-launcher ]]; then
-    echo "PRODUCT_PACKAGES += TvSampleLeanbackLauncher" \
-      >> $L_TMP/aosp/device/google/atv/products/sdk_atv_x86.mk
-  fi
+  local L_KERNEL_MK=$L_TMP/aosp/device/generic/goldfish/board/kernel/x86_64.mk
+  mkdir -p $(dirname $L_KERNEL_MK)
+  echo 'TARGET_KERNEL_USE ?= 6.6' > $L_KERNEL_MK
+  case "${1:-}" in
+    with-launcher|launcher-only|no-kernel-mk)
+      echo "PRODUCT_PACKAGES += TvSampleLeanbackLauncher" \
+        >> $L_TMP/aosp/device/google/atv/products/sdk_atv_x86.mk
+      ;;
+  esac
+  case "${1:-}" in
+    with-launcher)
+      echo '# (build-aosp-rpi)' >> $L_KERNEL_MK ;;
+    no-kernel-mk)
+      rm $L_KERNEL_MK ;;
+  esac
 }
 
 # usage: run_build <ARG_PLATFORM> <ARG_FORM_FACTOR>
@@ -130,9 +149,25 @@ assert "emulator/tv: m is not run" test ! -e $L_TMP/m.log
 setup_tree with-launcher
 assert "emulator/tv: succeeds with the generic patch" run_build emulator tv
 assert "emulator/tv: lunch" grep -qx "lunch sdk_atv_x86-trunk_staging-eng" $L_TMP/m.log
-# The check is only for emulator/tv.
+assert "emulator/tv: the 6.1 kernel" grep -qx "TARGET_KERNEL_USE=6.1" $L_TMP/m.log
+# The patch of an older version of the tool (only sdk_atv_x86.mk).
+setup_tree launcher-only
+assert "emulator/tv: fails without the goldfish patch" fails_build emulator tv
+assert "emulator/tv: the message of the goldfish patch" \
+  grep -q "requires the generic patch for device/generic/goldfish/board/kernel/x86_64.mk. Run the 'patch' task" $L_TMP/log
+assert "emulator/tv: m is not run (goldfish patch)" test ! -e $L_TMP/m.log
+setup_tree no-kernel-mk
+assert "emulator/tv: fails without x86_64.mk" fails_build emulator tv
+assert "emulator/tv: the message of no x86_64.mk" \
+  grep -q "x86_64.mk not found. Run the 'fetch' task" $L_TMP/log
+assert "emulator/tv: m is not run (no x86_64.mk)" test ! -e $L_TMP/m.log
+# The check and the kernel are only for emulator/tv.
 setup_tree
 assert "cuttlefish/tv: does not require the generic patch" run_build cuttlefish tv
+assert "cuttlefish/tv: the default kernel" grep -qx "TARGET_KERNEL_USE=" $L_TMP/m.log
+setup_tree launcher-only
+assert "emulator/phone: does not require the goldfish patch" run_build emulator phone
+assert "emulator/phone: the default kernel" grep -qx "TARGET_KERNEL_USE=" $L_TMP/m.log
 
 # Android 10-12 for non-RPi: m only, no copy and no build-info.json
 android_12() {

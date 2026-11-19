@@ -38,6 +38,12 @@ GENERIC_14_TARGETS = {
     "cuttlefish": ["droid", "hosttar"],
     "emulator": ["droid", "emu_img_zip"],
 }
+# The kernel of the emulator TV (TARGET_KERNEL_USE). sdk_atv_x86 is 32-bit,
+# and NetBpfLoad (tethering APEX) rejects 32-bit userspace on 6.2+ kernels,
+# so the default 6.6 of goldfish reboots in a loop
+# (docs-ai/done-task/emulator-tv-boot-loop). Keep it the same as
+# src/config/android-14.sh.
+EMULATOR_TV_KERNEL = "6.1"
 CROSS_COMPILE = {"arm": "arm-linux-gnueabihf-", "arm64": "aarch64-linux-gnu-"}
 
 _RPI_TARGETS = ("ramdisk", "systemimage", "vendorimage")
@@ -209,6 +215,8 @@ def resolve(android: str, rpi: bool, arch: Optional[str],
     if rpi and version == 14:
         # The prebuilt ABI reference dump of libcrypto mismatches the build.
         build_env["SKIP_ABI_CHECKS"] = "true"
+    if version == 14 and (platform, form_factor) == ("emulator", "tv"):
+        build_env["TARGET_KERNEL_USE"] = EMULATOR_TV_KERNEL
 
     return dict(
         android_version=android,

@@ -176,4 +176,47 @@ unknown_set_fails() {
 assert "set: unknown set fails with 2" unknown_set_fails
 assert "set: unknown set does not modify the tree" same_as orig
 
+# A patch file in a subdirectory is applied in that directory (its paths are
+# relative to it), e.g. device/generic/goldfish/android-14-generic.patch.
+# Separate files are judged separately, so a tree with only the top-level
+# patch applied (an old workdir) gets the new one by another run
+# (emulator-tv-boot-loop).
+setup_tree
+rm -rf $L_TMP/orig && cp -r $L_TMP/work $L_TMP/orig
+(
+  cd $L_TMP
+  sed 's/line2/TOP/' orig/a/x.txt > $L_TMP/x.top
+  diff -U 3 --label ./a/x.txt --label ./a/x.txt orig/a/x.txt $L_TMP/x.top
+) > $L_TMP/patches/android-97-generic.patch
+mkdir -p $L_TMP/patches/b
+(
+  cd $L_TMP
+  sed 's/bar/SUB/' orig/b/y.txt > $L_TMP/y.sub
+  diff -U 3 --label ./y.txt --label ./y.txt orig/b/y.txt $L_TMP/y.sub
+) > $L_TMP/patches/b/android-97-generic.patch
+run_patcher_97() {
+  (cd $L_TMP/work && bash $PATCHER --set generic --android 97 "$@") \
+    < /dev/null > $L_TMP/log 2>&1
+}
+both_97_applied() {
+  grep -qx TOP $L_TMP/work/a/x.txt && grep -qx SUB $L_TMP/work/b/y.txt
+}
+no_stray_y_txt() {
+  [[ ! -e $L_TMP/work/y.txt ]]
+}
+assert "subdir: apply succeeds" run_patcher_97
+assert "subdir: both patches are applied" both_97_applied
+assert "subdir: the subdir patch is applied in its directory" no_stray_y_txt
+assert "subdir: revert succeeds" run_patcher_97 -R
+assert "subdir: revert restores the tree" same_as orig
+# Only the top-level patch is applied (the workdir before the subdir patch).
+(cd $L_TMP/work && patch -p0 -f -s < $L_TMP/patches/android-97-generic.patch)
+top_already_applied() {
+  run_patcher_97 && \
+    grep -qF 'Patch ./android-97-generic.patch is already applied' $L_TMP/log && \
+    ! grep -qF 'Patch ./b/android-97-generic.patch is already applied' $L_TMP/log
+}
+assert "subdir: an old tree is migrated by another run" top_already_applied
+assert "subdir: both patches are applied after the migration" both_97_applied
+
 finish

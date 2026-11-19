@@ -1,0 +1,18 @@
+--- ./board/kernel/x86_64.mk
++++ ./board/kernel/x86_64.mk
+@@ -36,12 +36,14 @@
+     vmw_vsock_virtio_transport.ko \
+     vsock.ko \
+ 
+ BOARD_SYSTEM_KERNEL_MODULES := $(wildcard $(KERNEL_ARTIFACTS_PATH)/*.ko)
+ 
++# 6.1 has vsock and vmw_vsock_virtio_transport_common built in. Keep the
++# modules that exist for TARGET_KERNEL_USE (build-aosp-rpi).
+ BOARD_VENDOR_RAMDISK_KERNEL_MODULES := \
+-    $(patsubst %,$(VIRTUAL_DEVICE_KERNEL_MODULES_PATH)/%,$(RAMDISK_KERNEL_MODULES))
++    $(wildcard $(patsubst %,$(VIRTUAL_DEVICE_KERNEL_MODULES_PATH)/%,$(RAMDISK_KERNEL_MODULES)))
+ 
+ BOARD_VENDOR_KERNEL_MODULES := \
+     $(filter-out $(BOARD_VENDOR_RAMDISK_KERNEL_MODULES),\
+                  $(wildcard $(VIRTUAL_DEVICE_KERNEL_MODULES_PATH)/*.ko))
+ 

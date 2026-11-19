@@ -47,7 +47,8 @@ assert "clean-after-apt.sh does not use brace expansion (run by dash)" \
 has_header_before_first_hunk() {
   awk '/^\+\+\+ /{ok = 1} /^@@/{exit !ok}' $1
 }
-for L_FILE in $REPODIR/src/patches/android-*.patch; do
+# Including the patch files in subdirectories (applied in that directory).
+for L_FILE in $(find $REPODIR/src/patches -name 'android-*.patch' | sort); do
   assert "${L_FILE#$REPODIR/} has a file header before the first hunk" \
     has_header_before_first_hunk $L_FILE
 done

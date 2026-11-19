@@ -96,8 +96,19 @@ $ ./build-aosp.sh --android 14 --platform cuttlefish --form-factor auto \
 - Use different `--workdir` for RPi and the others. The AOSP tags differ
   (RPi: android-14.0.0_r17, the others: android-14.0.0_r74).
 - `patch` is required for `--platform emulator --form-factor tv`. It adds the
-  sample home app (TvSampleLeanbackLauncher) to `sdk_atv_x86`. Run
+  sample home app (TvSampleLeanbackLauncher) to `sdk_atv_x86`, and makes the
+  list of the ramdisk kernel modules of goldfish fit the kernel in use. Run
   `patch-revert` before changing the AOSP tag by `fetch`, as for RPi.
+- `sdk_atv_x86` is 32-bit, so the TV emulator uses the 6.1 kernel
+  (`TARGET_KERNEL_USE=6.1`) instead of the default 6.6. With 6.6, bpfloader
+  fails on 32-bit userspace and the device reboots in a loop. The other form
+  factors and platforms keep their kernels.
+- If the workdir was patched by an older version of this tool, run `patch`
+  again after updating the tool (the old patch is "already applied", and the
+  new goldfish patch is applied). Otherwise `build` of emulator/tv stops
+  before make. The emulator/tv outputs built before this change (6.6 kernel)
+  do not boot; run `build` again. `run-aosp.sh` re-extracts the updated zip
+  and recreates the AVD, so `--wipe` is not needed.
 - Android 14 for cuttlefish and the emulator supports only `--arch x86_64`
   (default). Before this change, the default arch of them was arm64 and the
   outputs were built in `<workdir>/gen/out.arm64`. To reuse it, rename it to

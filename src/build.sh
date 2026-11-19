@@ -38,7 +38,7 @@ fi
 # ==============================================================================
 # Build
 
-# sdk_atv_x86 has no home app without the generic patch
+# sdk_atv_x86 has no home app and does not boot without the generic patch
 # (docs-ai/task/form-factor-and-run-targets/06).
 if [[ "$ARG_PLATFORM/$ARG_FORM_FACTOR" == emulator/tv ]]; then
   L_SDK_ATV=device/google/atv/products/sdk_atv_x86.mk
@@ -48,6 +48,19 @@ if [[ "$ARG_PLATFORM/$ARG_FORM_FACTOR" == emulator/tv ]]; then
   fi
   if ! grep -q TvSampleLeanbackLauncher $L_SDK_ATV; then
     echo "error: emulator/tv requires the generic patch. Run the 'patch' task." >&2
+    exit 1
+  fi
+  # The ramdisk modules of goldfish must fit the 6.1 kernel
+  # (TARGET_KERNEL_USE of src/config/android-14.sh,
+  # docs-ai/done-task/emulator-tv-boot-loop). Check the mark of the patch,
+  # not the change itself, not to accept a manual change or an upstream one.
+  L_GOLDFISH_KERNEL=device/generic/goldfish/board/kernel/x86_64.mk
+  if [[ ! -f $L_GOLDFISH_KERNEL ]]; then
+    echo "error: $L_GOLDFISH_KERNEL not found. Run the 'fetch' task." >&2
+    exit 1
+  fi
+  if ! grep -q 'build-aosp-rpi' $L_GOLDFISH_KERNEL; then
+    echo "error: emulator/tv requires the generic patch for $L_GOLDFISH_KERNEL. Run the 'patch' task." >&2
     exit 1
   fi
 fi
