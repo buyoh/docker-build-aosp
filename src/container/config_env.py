@@ -47,8 +47,9 @@ BUILD_ENV = "build_env"
 IGNORED = ("schema", "aosp_make", "kernel_build", "artifacts", "kernel_env",
            "record")
 
-# The keys that may be null.
-NULLABLE = ("kernel_rpi_branch", "kernel_dist_dir")
+# The keys that may be null. android_rpi_branch is null for a version without
+# RPi (16); only the RPi part of fetch.sh uses BRANCH_ANDROID_RPI.
+NULLABLE = ("android_rpi_branch", "kernel_rpi_branch", "kernel_dist_dir")
 NAME = re.compile(r"[A-Z_][A-Z0-9_]*\Z")
 # The names that build_env must not override: the variables of the scripts
 # in the container (L_* is the prefix of their local variables) and of the

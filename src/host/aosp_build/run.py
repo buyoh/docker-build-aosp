@@ -35,8 +35,9 @@ EMULATOR_DEFAULT_GPU_MODE = "host"
 ADB_PORT = 6520
 TAP_DEVICE = "cvd-mtap-01"
 
-# The API level of the system image by the android version.
-API_LEVELS = {"14": 34}
+# The API level of the system image by the android version. 16 (bp4a) is
+# SDK 36.1 (RELEASE_PLATFORM_SDK_VERSION_FULL); the target uses the major 36.
+API_LEVELS = {"14": 34, "16": 36}
 
 AVD_TAGS = {
     "phone": ("default", "Default"),

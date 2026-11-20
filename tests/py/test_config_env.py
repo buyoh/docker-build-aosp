@@ -113,6 +113,15 @@ class TestAssignments(ConfigEnvTestCase):
         self.assertEqual(v["SKIP_ABI_CHECKS"], (True, "true"))
         self.assertNotIn("TARGET_KERNEL_USE", v)
 
+    def test_null_android_rpi_branch_is_not_assigned(self):
+        # 16 has no RPi: android_rpi_branch is null (NULLABLE).
+        data = config("16", False, None, "emulator", "tv")
+        self.assertIsNone(data["android_rpi_branch"])
+        v = self.evaluated(data)
+        self.assertNotIn("BRANCH_ANDROID_RPI", v)
+        self.assertNotIn("BRANCH_KERNEL_RPI", v)
+        self.assertEqual(v["LUNCH_CHOICE"], (False, "sdk_atv_x86-bp4a-eng"))
+
     def test_null_is_not_assigned(self):
         v = self.evaluated(config("10", False, None))
         self.assertNotIn("BRANCH_KERNEL_RPI", v)

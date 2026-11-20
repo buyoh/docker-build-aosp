@@ -173,6 +173,41 @@ setup_tree launcher-only
 assert "emulator/phone: does not require the goldfish patch" run_build emulator phone
 assert "emulator/phone: the default kernel" grep -qx "TARGET_KERNEL_USE=" $L_TMP/m.log
 
+# Android 16: the tool has no goldfish patch for 16 (the upstream pins the
+# kernel of the TV emulator), so only the atv patch is checked.
+android_16() {
+  local T_VERSION=16
+  run_build "$@"
+}
+fails_16() {
+  ! android_16 "$@"
+}
+setup_tree
+assert "16 emulator/tv: fails without the generic patch" fails_16 emulator tv
+assert "16 emulator/tv: the message" grep -q "emulator/tv requires the generic patch. Run" $L_TMP/log
+assert "16 emulator/tv: m is not run" test ! -e $L_TMP/m.log
+setup_tree launcher-only
+assert "16 emulator/tv: succeeds without the goldfish patch" android_16 emulator tv
+assert "16 emulator/tv: lunch" grep -qx "lunch sdk_atv_x86-bp4a-eng" $L_TMP/m.log
+assert "16 emulator/tv: no TARGET_KERNEL_USE" grep -qx "TARGET_KERNEL_USE=" $L_TMP/m.log
+assert "16 emulator/tv: make targets" grep -qx "m droid emu_img_zip" $L_TMP/m.log
+assert "16 emulator/tv: zip" test -f $L_TMP/mnt_out/android-16-x86_64-emulator/sdk-repo-linux-system-images.zip
+assert "16 emulator/tv: build-info.json android_version" \
+  info_has android-16-x86_64-emulator android_version 16
+assert "16 emulator/tv: build-info.json lunch" \
+  info_has android-16-x86_64-emulator lunch_choice sdk_atv_x86-bp4a-eng
+setup_tree no-kernel-mk
+assert "16 emulator/tv: the goldfish x86_64.mk is not needed" android_16 emulator tv
+# 14 still checks the goldfish patch (the same tree fails for 14).
+setup_tree launcher-only
+assert "14 emulator/tv: still requires the goldfish patch" fails_build emulator tv
+setup_tree
+assert "16 cuttlefish: build succeeds" android_16 "" ""
+assert "16 cuttlefish: lunch" grep -qx "lunch aosp_cf_x86_64_tv-bp4a-eng" $L_TMP/m.log
+assert "16 cuttlefish: make targets" grep -qx "m droid hosttar" $L_TMP/m.log
+assert "16 cuttlefish: images" test -f $L_TMP/mnt_out/android-16-x86_64/images/super.img
+assert "16 cuttlefish: host package" test -f $L_TMP/mnt_out/android-16-x86_64/cvd-host_package.tar.gz
+
 # Android 10-12 for non-RPi: m only, no copy and no build-info.json
 android_12() {
   local T_VERSION=12 T_ARCH=x86_64

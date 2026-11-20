@@ -14,6 +14,6 @@ elif [[ $ANDROID_VERSION -ge 14 ]]; then
   # cuttlefish and emulator, so it is applied regardless of the platform.
   $SCRIPTDIR/../common/patches/patcher.sh --set generic --android $ANDROID_VERSION
 else
-  echo "Patches are only available for RPI or Android 14."
+  echo "Patches are only available for RPi, or for Android 14 and later (non-RPi)."
   exit 1
 fi

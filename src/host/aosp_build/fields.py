@@ -27,26 +27,27 @@ class Field:
 
 
 FIELDS = (
-    Field("android", "version", "The android version (10, 11, 12 or 14)",
+    Field("android", "version", "The android version (10, 11, 12, 14 or 16)",
           cli="--android", metavar="VERSION"),
     Field("rpi", "bool",
-          "Enable Raspberry Pi specific build. Same as --platform rpi4.",
+          "Enable Raspberry Pi specific build. Same as --platform rpi4. "
+          "Android 16 does not support it.",
           cli="--rpi", cli_negate="--no-rpi"),
     Field("platform", "str",
           "The platform to build for (rpi4, cuttlefish or emulator). "
           "The default is rpi4 with --rpi, otherwise depends on the android "
-          "version (14: cuttlefish, 10-12: emulator).",
+          "version (14, 16: cuttlefish, 10-12: emulator).",
           cli="--platform", choices=PLATFORMS,
           metavar="PLATFORM"),
     Field("form_factor", "str",
           "The form factor (phone, tv or auto). The default depends on the "
-          "android version and the platform (14: tv). RPi supports only tv.",
+          "android version and the platform (14, 16: tv). RPi supports only tv.",
           cli="--form-factor", choices=FORM_FACTORS,
           metavar="FORM_FACTOR"),
     Field("arch", "str",
           "The taget architecture (arm or arm64 or x86_64). "
           "For Android 14, rpi supports only arm64 (default) and the "
-          "others only x86_64 (default).",
+          "others only x86_64 (default). Android 16 supports only x86_64.",
           cli="--arch", choices=("arm", "arm64", "x86_64"), metavar="ARCH"),
     Field("workdir", "path",
           "The folder that store sources will be <WORKDIR>/work.",

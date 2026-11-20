@@ -366,6 +366,20 @@ class TestEmulator(RunTestCase):
         with open(os.path.join(self.rundir, "avd", self.name + ".ini")) as f:
             self.assertIn("target=android-34\n", f.read())
 
+    def test_android_16(self):
+        """16 (bp4a, SDK 36.1) is API level 36."""
+        sdk = os.path.join(self.dir, "sdk")
+        self.make_sdk(sdk)
+        name = "android-16-x86_64-emulator-tv"
+        self.make_output(name, {"android_version": "16",
+                                "platform": "emulator", "form_factor": "tv"})
+        self.assertEqual(self.run_aosp("--outdir", self.out, "-t", name,
+                                       env={"ANDROID_HOME": sdk}),
+                         0, self.stderr)
+        avd = os.path.join(self.out, name, "run-emulator", "avd", name + ".ini")
+        with open(avd) as f:
+            self.assertIn("target=android-36\n", f.read())
+
     def test_wipe_gpu_and_extra_args(self):
         sdk = os.path.join(self.dir, "sdk")
         self.make_sdk(sdk)

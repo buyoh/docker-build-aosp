@@ -21,7 +21,7 @@ class ResolvedConfig:
     arch: str
     aosp_branch: str
     repo_rev: str
-    android_rpi_branch: str
+    android_rpi_branch: Optional[str]
     kernel_rpi_branch: Optional[str]
     kernel_dist_dir: Optional[str]
     platform: str

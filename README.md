@@ -71,10 +71,13 @@ $ run-aosp.sh --outdir out -t android-14-x86_64-emulator
 
 ## Limitation
 
-- AOSP 10, 11, 12 and 14 are supported.
+- AOSP 10, 11, 12, 14 and 16 are supported.
   - The form factors other than TV, cuttlefish and the emulator are only for
-    Android 14.
-  - Android 12 and 14 support is ongoing. See test.md for the tested status.
+    Android 14 and 16.
+  - Android 16 supports only cuttlefish and the emulator. Raspberry Pi is not
+    supported (android-rpi has no branch for Android 15 or later).
+  - Android 12, 14 and 16 support is ongoing. See test.md for the tested
+    status.
 - Enabling wifi causes crashes.
   - RPi 4 has an ethernet adapter so we can use it.
 - Supporting arm / arm32
@@ -125,6 +128,28 @@ $ ./build-aosp.sh --android 14 --platform cuttlefish --form-factor auto \
   32-bit x86, so switching to it rebuilds more.
 - Stop the running device (`run-aosp.sh --stop`) before building to the same
   output directory.
+
+Android 16 (`android-16.0.0_r4`) has the same form factors and platforms
+except `rpi4`. The release config is `bp4a` (the release of r4), not
+`trunk_staging`: `sdk_atv_x86-bp4a-eng`, `aosp_cf_x86_64_tv-bp4a-eng` and so
+on.
+
+- `patch` is required for `--platform emulator --form-factor tv` as for 14.
+  It adds only the home app and the IME: the upstream of 16 pins the 6.1
+  kernel for the TV emulator, so the goldfish patch and `TARGET_KERNEL_USE`
+  are not needed.
+- To reuse a workdir of Android 14 for cuttlefish and the emulator, revert
+  the patches of 14 with the version of 14 first: the patches are found by
+  the version, and the goldfish patch exists only for 14.
+
+  ```sh
+  $ ./build-aosp.sh --android 14 --no-rpi --workdir <dir> --outdir <dir> patch-revert
+  $ ./build-aosp.sh --android 16 --platform emulator --form-factor tv \
+       --workdir <dir> --outdir <dir> fetch patch build
+  ```
+- Do not use a workdir of RPi (any version) for cuttlefish and the emulator.
+  `fetch` fails for them if `.repo/local_manifests` (of RPi) exists in the
+  workdir. This check applies to every android version.
 
 The outputs of cuttlefish and the emulator are copied to the output directory
 with `build-info.json`:

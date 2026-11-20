@@ -61,9 +61,12 @@ class Kind:
 @dataclass(frozen=True)
 class VersionSpec:
     android: str
-    # For RPi, but resolve() returns them for the others too.
-    android_rpi_branch: str
+    # For RPi, but resolve() returns them for the others too. None if the
+    # version has no "rpi" kind.
+    android_rpi_branch: Optional[str]
     kernel_rpi_branch: Optional[str]
     # out/<BRANCH>/dist of the kernel. BRANCH is defined in build.config.
     kernel_dist_dir: Optional[str]
-    kinds: Dict[str, Kind]  # "rpi" / "generic" -> Kind
+    # "rpi" / "generic" -> Kind. A version may lack one of them (16 has no
+    # "rpi"); resolve() then fails with NO_KIND_ERRORS.
+    kinds: Dict[str, Kind]

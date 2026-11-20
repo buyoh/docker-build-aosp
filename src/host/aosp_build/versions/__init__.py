@@ -14,7 +14,8 @@ from __future__ import annotations
 from typing import Dict, Optional
 
 from aosp_build import ConfigError
-from aosp_build.versions import android_10, android_11, android_12, android_14
+from aosp_build.versions import (android_10, android_11, android_12,
+                                 android_14, android_16)
 from aosp_build.versions.constants import (ARCHS, CROSS_COMPILE, FORM_FACTORS,
                                            PLATFORMS, REPO_REV)
 from aosp_build.versions.types import PerArch, VersionSpec
@@ -25,7 +26,16 @@ __all__ = ["ARCHS", "FORM_FACTORS", "PLATFORMS", "REPO_REV", "VERSIONS",
 VERSIONS: Dict[str, VersionSpec] = {
     spec.android: spec
     for spec in (android_10.SPEC, android_11.SPEC, android_12.SPEC,
-                 android_14.SPEC)
+                 android_14.SPEC, android_16.SPEC)
+}
+
+# The error when the version has no kind (VersionSpec.kinds). %s is the
+# android version.
+NO_KIND_ERRORS = {
+    "rpi": "Android %s does not support Raspberry Pi (--rpi, --platform "
+           "rpi4). Use --no-rpi (rpi = false) with --platform cuttlefish "
+           "or emulator.",
+    "generic": "Android %s supports only Raspberry Pi (--rpi).",
 }
 
 
@@ -52,7 +62,10 @@ def resolve(android: str, rpi: bool, arch: Optional[str],
     if spec is None:
         raise ConfigError(
             "The android version '%s' is not supported." % android)
-    kind = spec.kinds["rpi" if rpi else "generic"]
+    kind_name = "rpi" if rpi else "generic"
+    kind = spec.kinds.get(kind_name)
+    if kind is None:
+        raise ConfigError(NO_KIND_ERRORS[kind_name] % android)
 
     platform = platform or kind.default_platform
     form_factor = form_factor or kind.default_form_factor

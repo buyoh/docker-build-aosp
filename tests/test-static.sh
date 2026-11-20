@@ -25,8 +25,19 @@ assert "src/container and src/common do not refer to src/host" \
 # The files of src/common that src/container refers to by $SCRIPTDIR/../common
 # (the same relative path in the repository and in /tmp/src of the container).
 for L_REF in $(cd $REPODIR/src/container && grep -ohE '\$SCRIPTDIR/\.\./common/[^ ]+' *.sh | sort -u); do
-  assert "src/container refers to an existing file: $L_REF" \
-    test -f "$REPODIR/src/container/${L_REF#\$SCRIPTDIR/}"
+  L_PATH=$REPODIR/src/container/${L_REF#\$SCRIPTDIR/}
+  if [[ $L_PATH == *'$'* ]]; then
+    # A path with a variable (e.g. the patch of $ANDROID_VERSION, which does
+    # not exist for every version): the directory before the variable
+    # exists, and the pattern matches at least one file.
+    assert "src/container refers to an existing directory: $L_REF" \
+      test -d "$(dirname "${L_PATH%%\$*}")"
+    assert "src/container refers to an existing file pattern: $L_REF" \
+      compgen -G "$(echo "$L_PATH" | sed -E 's/\$[A-Za-z_][A-Za-z0-9_]*/*/g')"
+  else
+    assert "src/container refers to an existing file: $L_REF" \
+      test -f "$L_PATH"
+  fi
 done
 
 for L_TASK in bash build fetch patch patch-revert; do

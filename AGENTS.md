@@ -6,6 +6,7 @@
 - 必要に応じてRaspberry Pi 向けパッチを無効化し、エミュレータ(x64(上で動かせるようにする
 - Android TV向けのビルドを行える。
 - Android 14 では TV / スマートフォン / 車載を切り替えてビルドできる（`--form-factor`）。非 RPi の成果物は cuttlefish・Android Emulator でホスト上に起動できる（`run-aosp.sh`）。
+- Android 16 は非 RPi（cuttlefish・Android Emulator）だけに対応する。form factor は 14 と同じ。RPi は非対応（android-rpi に 15 以降のブランチがない）。
 
 ## 想定
 

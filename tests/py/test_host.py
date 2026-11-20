@@ -225,6 +225,19 @@ class TestErrors(HostTestCase):
             "--android", "13", "--workdir", self.var, "--outdir", self.out,
             "build"), "The android version '13' is not supported.")
 
+    def test_android_16_has_no_rpi(self):
+        message = ("Android 16 does not support Raspberry Pi (--rpi, "
+                   "--platform rpi4).")
+        for option in (["--rpi"], ["--platform", "rpi4"]):
+            with self.subTest(option=option):
+                self.assertError(self.build_aosp(
+                    "--android", "16", *option, "--workdir", self.var,
+                    "--outdir", self.out, "build"), message)
+                # --platform alone conflicts with rpi = true.
+                self.assertIn("Use --no-rpi (rpi = false) with --platform",
+                              self.stderr)
+                self.assertEqual(self.configs(), [])
+
     def test_missing_value(self):
         self.assertError(self.build_aosp("--android"), "expected one argument")
 

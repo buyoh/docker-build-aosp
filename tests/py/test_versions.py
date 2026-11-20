@@ -262,7 +262,17 @@ class TestStatic(unittest.TestCase):
         """The tables in src/host/aosp_build/versions/android_*.py."""
         for v, spec in VERSIONS.items():
             self.assertEqual(spec.android, v)
-            self.assertEqual(sorted(spec.kinds), ["generic", "rpi"])
+            # A version may lack a kind: 16 has no "rpi".
+            self.assertEqual(set(spec.kinds),
+                             {"generic"} if v == "16"
+                             else {"generic", "rpi"})
+            # The RPi values are None if and only if there is no "rpi".
+            if "rpi" in spec.kinds:
+                self.assertTrue(spec.android_rpi_branch)
+            else:
+                self.assertIsNone(spec.android_rpi_branch)
+                self.assertIsNone(spec.kernel_rpi_branch)
+                self.assertIsNone(spec.kernel_dist_dir)
             for name, kind in spec.kinds.items():
                 with self.subTest(version=v, kind=name):
                     rpi = name == "rpi"
@@ -315,9 +325,67 @@ class TestStatic(unittest.TestCase):
 
     def test_kernel_branches_are_defined_for_12_and_later(self):
         for v, spec in VERSIONS.items():
-            if int(v) >= 12:
+            # 16 has no RPi (the kernel branches are None).
+            if int(v) >= 12 and "rpi" in spec.kinds:
                 self.assertTrue(spec.kernel_rpi_branch)
                 self.assertTrue(spec.kernel_dist_dir)
+
+
+class TestAndroid16(unittest.TestCase):
+    """Android 16: cuttlefish and the emulator only, bp4a
+    (docs-ai/survey/android-16-support/04)."""
+    LUNCH = {
+        ("cuttlefish", "phone"): "aosp_cf_x86_64_phone-bp4a-eng",
+        ("cuttlefish", "tv"): "aosp_cf_x86_64_tv-bp4a-eng",
+        ("cuttlefish", "auto"): "aosp_cf_x86_64_auto-bp4a-eng",
+        ("emulator", "phone"): "sdk_phone64_x86_64-bp4a-eng",
+        ("emulator", "tv"): "sdk_atv_x86-bp4a-eng",
+        ("emulator", "auto"): "sdk_car_x86_64-bp4a-eng",
+    }
+
+    def test_table(self):
+        for (platform, ff), lunch in self.LUNCH.items():
+            with self.subTest(platform=platform, form_factor=ff):
+                r = resolve("16", False, None, platform, ff)
+                self.assertEqual(r["lunch_choice"], lunch)
+                self.assertEqual(r["aosp_branch"], "android-16.0.0_r4")
+                self.assertEqual(r["arch"], "x86_64")
+                self.assertEqual(r["artifacts"], platform)
+                self.assertEqual(r["kernel_build"], "none")
+                # The upstream pins the kernel of the TV emulator (r3+):
+                # no TARGET_KERNEL_USE, unlike 14.
+                self.assertEqual(r["build_env"],
+                                 {"ARCH": "x86_64", "ALLOW_NINJA_ENV": "1"})
+                self.assertEqual(
+                    r["aosp_make"]["targets"],
+                    ["droid", "hosttar"] if platform == "cuttlefish"
+                    else ["droid", "emu_img_zip"])
+                self.assertIsNone(r["android_rpi_branch"])
+                self.assertIsNone(r["kernel_rpi_branch"])
+                self.assertIsNone(r["kernel_dist_dir"])
+
+    def test_default(self):
+        r = resolve("16", False, None)
+        self.assertEqual((r["platform"], r["form_factor"], r["arch"]),
+                         ("cuttlefish", "tv", "x86_64"))
+        self.assertEqual(r["outdir_name"], "android-16-x86_64")
+        self.assertEqual(
+            resolve("16", False, None, "emulator", "auto")["outdir_name"],
+            "android-16-x86_64-emulator-auto")
+
+    def test_no_rpi(self):
+        for arch in (None, "arm64"):
+            with self.assertRaisesRegex(
+                    ConfigError, r"^Android 16 does not support Raspberry "
+                                 r"Pi \(--rpi, --platform rpi4\)"):
+                resolve("16", True, arch, "rpi4", None)
+
+    def test_arch(self):
+        for arch in ("arm", "arm64"):
+            with self.assertRaisesRegex(
+                    ConfigError, "Android 16 for emulator supports only "
+                                 "x86_64"):
+                resolve("16", False, arch, "emulator", "tv")
 
 
 if __name__ == "__main__":
